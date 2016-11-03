@@ -21,5 +21,6 @@ int solve4Test(int output);
 
 int distToEllipseTest(int output);
 int ellipseFittingTest(int output);
+int ellipseFittingCircleTest(int output);
 
 #endif

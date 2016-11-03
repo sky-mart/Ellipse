@@ -20,12 +20,12 @@ void simpleInv(myreal A[2][2], myreal invA[2][2]);
 
 void distToEllipse(myreal a, myreal b, myreal X0, myreal Y0, myreal d[2]);
 
-void solve4(myreal a0, myreal a1, myreal a2, myreal a3, myreal a4, mycomplex roots[4], myreal ela, myreal elb);
+void solve4(myreal a0, myreal a1, myreal a2, myreal a3, myreal a4, mycomplex roots[4]);
 
 void solve3(myreal a0, myreal a1, myreal a2, myreal a3, mycomplex roots[3]);
 
 void solve2(mycomplex a0, mycomplex a1, mycomplex a2, mycomplex roots[2]);
 
-myreal cbrt(myreal a, myreal e);
+//myreal cbrt(myreal a, myreal e);
 
 #endif

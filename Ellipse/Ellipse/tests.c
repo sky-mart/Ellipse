@@ -5,7 +5,7 @@
 #include "ellipse.h"
 #include "mkl.h"
 #include <stdlib.h>
-
+#include <time.h>
 
 int complexTest(int output)
 {
@@ -291,7 +291,7 @@ int solve4Test(int output)
 	mycomplex r[4];
 	int i;
 
-	//solve4(a, b, c, d, e, r);
+	solve4(a, b, c, d, e, r);
 
 	for (i = 0; i < 4; i++) {
 		tmp = makeComplex(0, 0);
@@ -375,6 +375,98 @@ int ellipseFittingTest(int output)
 			printf("ellipseFittingTest: PASSED\n");
 		} else {
 			printf("ellipseFittingTest: FAILED\n");
+		}
+	}
+	return res;
+}
+
+int ellipseFittingCircleTest(int output)
+{
+	int res = 1;
+	myreal Xc = 0;
+	myreal Yc = 0;
+	myreal R = 10;
+	myreal step = M_PI / 1239;
+	int size = 2 * M_PI / step + 1;
+	myreal t;
+	int i;
+	myreal **X = (myreal **)malloc(size * sizeof(myreal *));
+	myreal ellipseParams[5];
+	myreal prec = 0.001;
+	for (i = 0, t = 0; i < size; i++, t += step) {
+		myreal x = R*cos(t);
+		myreal y = R*sin(t);
+		X[i] = (myreal *)malloc(2 * sizeof(myreal));
+		X[i][0] = x + Xc;
+		X[i][1] = y + Yc;
+	}
+	ellipseFitting(X, size, ellipseParams);
+
+	res = res && (abs(ellipseParams[0] - Xc) < prec);
+	res = res && (abs(ellipseParams[1] - Yc) < prec);
+	res = res && (abs(ellipseParams[2] - R) < prec);
+	res = res && (abs(ellipseParams[3] - R) < prec);
+	res = res && (abs(ellipseParams[4] - 0) < prec);
+	for (i = 0; i < size; i++) {
+		free(X[i]);
+	}
+	free(X);
+	if (output) {
+		if (res) {
+			printf("ellipseFittingCircleTest: PASSED\n");
+		}
+		else {
+			printf("ellipseFittingCircleTest: FAILED\n");
+		}
+	}
+	return res;
+}
+
+void ellipseFittingNoiseTest(int output)
+{
+	int res = 1;
+	myreal Xc = -7;
+	myreal Yc = 21;
+	myreal a = 130;
+	myreal b = 90;
+	myreal al = -M_PI / 6;
+	myreal step = M_PI / 120;
+	int size = 2 * M_PI / step + 1;
+	myreal t;
+	int i;
+	myreal **X = (myreal **)malloc(size * sizeof(myreal *));
+	myreal ellipseParams[5];
+	myreal prec = 0.001;
+	myreal noise_level = 0.1;
+	srand(time(0));
+	for (i = 0, t = 0; i < size; i++, t += step) {
+		myreal x = a*cos(t);
+		myreal y = b*sin(t);
+		X[i] = (myreal *)malloc(2 * sizeof(myreal));
+		myreal r0 = noise_level * (myreal)(RAND_MAX/2 - rand()) / RAND_MAX;
+		myreal r1 = noise_level * (myreal)(RAND_MAX/2 - rand()) / RAND_MAX;
+		X[i][0] = cos(al)*x - sin(al)*y + Xc;
+		X[i][0] += X[i][0] * r0;
+		X[i][1] = sin(al)*x + cos(al)*y + Yc;
+		X[i][1] += X[i][1] * r1;
+	}
+	ellipseFitting(X, size, ellipseParams);
+
+	res = res && (abs(ellipseParams[0] - Xc) < prec);
+	res = res && (abs(ellipseParams[1] - Yc) < prec);
+	res = res && (abs(ellipseParams[2] - a) < prec);
+	res = res && (abs(ellipseParams[3] - b) < prec);
+	res = res && (abs(ellipseParams[4] - al) < prec);
+	for (i = 0; i < size; i++) {
+		free(X[i]);
+	}
+	free(X);
+	if (output) {
+		if (res) {
+			printf("ellipseFittingNoiseTest: PASSED\n");
+		}
+		else {
+			printf("ellipseFittingNoiseTest: FAILED\n");
 		}
 	}
 	return res;

@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "mkl.h"
+#include <mkl.h>
 #include <time.h>
+#include <math.h>
 
 static const int SPACE_SIZE		= 2; // space dimenstion
 static const int PARAMS_COUNT	= 5; // ellipse parameters number
@@ -45,14 +46,14 @@ void ellipseFitting(myreal **X, int size, myreal ellipseParams[5])
 	int i;		
 	
 	// initial parameters for the algorithm are taken from the mass center
-	/*massCenter(X, size, ellipseParams);
+	massCenter(X, size, ellipseParams);
 	ellipseParams[3] = ellipseParams[2];
-	ellipseParams[4] = 0;*/
-	ellipseParams[0] = -7.000022;
+	ellipseParams[4] = 0;
+	/*ellipseParams[0] = -7.000022;
 	ellipseParams[1] = 21.000046;
 	ellipseParams[2] = 129.819432;
 	ellipseParams[3] = 90.102916;
-	ellipseParams[4] = 0.394887;
+	ellipseParams[4] = 0.394887;*/
 
 	// memory allocation
 	e = (myreal *)malloc(size * SPACE_SIZE * sizeof(myreal));
@@ -62,44 +63,45 @@ void ellipseFitting(myreal **X, int size, myreal ellipseParams[5])
 		myreal Ji[2][5];
 		myreal ei[2];
 		myreal start, finish, average = 0;
-		start = clock();
+		//start = clock();
 		for (i = 0; i < size; i++) {
 			// get jacobian part corresponding to ith point
-			printf("%i ", i);
+			//printf("%i ", i);
 			jacobianAndPenalty(X[i], ellipseParams, Ji, ei);
-			checkJandE(Ji, ei);
+			//checkJandE(Ji, ei);
 		
 			// copy the part to the whole
 			memcpy(J + i*PARAMS_COUNT*SPACE_SIZE, Ji, PARAMS_COUNT*SPACE_SIZE*sizeof(myreal));
 			memcpy(e + i*SPACE_SIZE, ei, SPACE_SIZE*sizeof(myreal));
 		}
-		finish = clock();
-		average = (finish - start) / size / CLOCKS_PER_SEC;
-		printf("Average J calculation: %.12lf\n", average);
+		//finish = clock();
+		//average = (finish - start) / size / CLOCKS_PER_SEC;
+		//printf("Average J calculation: %.12lf\n", average);
 
 		//printSystem(J, e, size*2, 5);
-		if (ellipseParams[2] == ellipseParams[3]) { // a == b
+		if (fabs(ellipseParams[2] - ellipseParams[3]) < 1e-5) { // a == b
 			linsolve(J, e, x, size*SPACE_SIZE, PARAMS_COUNT - 1);
 			x[4] = 0;
 		} else {
 			linsolve(J, e, x, size*SPACE_SIZE, PARAMS_COUNT);
 		}
 
-		printf("popravki:\n");
+		//printf("popravki:\n");
 		for (i = 0; i < 5; i++) {
-			printf("%i: %lf - %lf\n", i, ellipseParams[i], x[i]);
+			//printf("%i: %lf - %lf\n", i, ellipseParams[i], x[i]);
 			ellipseParams[i] += x[i];
 		}
 
-		ea = x[2] / ellipseParams[2];
-		eb = x[3] / ellipseParams[3];
+		ea = fabs(x[2] / ellipseParams[2]);
+		eb = fabs(x[3] / ellipseParams[3]);
 		s = sqrt(x[0]*x[0] + x[1]*x[1]);
+		printf("ea=%lf, eb=%lf, s=%lf\n", ea, eb, s);
 
 		iter++;
 	} while((ea >= 1e-3) || (eb >= 1e-3) ||
-		(2*s/(ellipseParams[2]+ellipseParams[3]) >= 1e-5));
+		(2*s/(ellipseParams[2]+ellipseParams[3]) >= 1e-3));
 
-	printf("%i iterations\n", iter);
+	//printf("%i iterations\n", iter);
 	free(e);
 	free(J);
 }
@@ -353,13 +355,13 @@ void distToEllipse(myreal a, myreal b, myreal X0, myreal Y0, myreal d[2])
 	}
 } 
 
-void solve4(myreal a, myreal b, myreal c, myreal d, myreal e, mycomplex roots[4],myreal ela,myreal elb)
+void solve4(myreal a, myreal b, myreal c, myreal d, myreal e, mycomplex roots[4])
 // Solve the 4th degree equation x^4 + a*x^3 + b*x^2 + c*x + d = 0
 {
 	int j,k,i;
 	myreal p, q, r;					// coefficients in the 3rd degree equation
 	myreal A, B, C, D;				// coefficients in cubic resolvent
-	mycomplex cubeRoots[3];			// cubeic resolvent roots
+	mycomplex cubeRoots[3];			// cubic resolvent roots
 	mycomplex iRoots[4];
 	mycomplex s;					// auxuliary expression
 	mycomplex sqcf1[3], sqcf2[3];
@@ -384,70 +386,29 @@ void solve4(myreal a, myreal b, myreal c, myreal d, myreal e, mycomplex roots[4]
 	D = r*p - q*q/4;
 
 	solve3(A, B, C, D, cubeRoots);
-		s = makeComplex(0, 0);
-	for( j=0;j<3;j++){
-
-/*
-		if (cubeRoots[0].r > p/2) { 
-			s = cubeRoots[0];
-		} else if (cubeRoots[1].r > p/2) {
-			s = cubeRoots[1];
-		} else if (cubeRoots[2].r > p/2) {
-			s = cubeRoots[2];
-		}*/
-		s=cubeRoots[j];
-
-		sqcf1[0] = makeComplex(1, 0);
-		sqcf1[1] = zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), -1);
-		// q/(2*sqrt(2*s-p)) + s
-		sqcf1[2] = zaddz(zdivz(makeComplex(q, 0), zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), 2)),s);
-		solve2(sqcf1[0], sqcf1[1], sqcf1[2], sqr1);
-
-		sqcf2[0] = makeComplex(1, 0);
-		sqcf2[1] = complexNthroot(zsubr(zmulr(s, 2), p), 2);
-		sqcf2[2] = zaddz(zdivz(makeComplex(-q, 0), zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), 2)),s);
-		solve2(sqcf2[0], sqcf2[1], sqcf2[2], sqr2);
-		
-		iRoots[0] = zsubr(sqr1[0], a/4);
-		iRoots[1] = zsubr(sqr1[1], a/4);
-		iRoots[2] = zsubr(sqr2[0], a/4);
-		iRoots[3] = zsubr(sqr2[1], a/4);
-		
-		cErr=0;
-		for (k = 0; k < 4; k++) {
-				myreal tmp2=0;
-				tmp = makeComplex(0, 0);
-				tmp = zaddz(tmp, zmulr(zmulz(zmulz(iRoots[k], iRoots[k]), zmulz(iRoots[k], iRoots[k])), 1)); 
-				tmp = zaddz(tmp, zmulr(zmulz(iRoots[k], zmulz(iRoots[k], iRoots[k])), a)); 
-				tmp = zaddz(tmp, zmulr(zmulz(iRoots[k], iRoots[k]), b)); 
-				tmp = zaddz(tmp, zmulr(iRoots[k], c)); 
-				tmp = zaddr(tmp, d);
-				tmp2=(iRoots[k].i>0)?iRoots[k].i:-iRoots[k].i;
-				if (tmp2 < 1e-15) {//((absIm < 1e-10) || (abs(roots[i].i/roots[i].r) < 1e-10)) {
-				myreal root = iRoots[k].r;
-				if (((2 + 2*root/ela/ela > 0) && (2 + 2*root/elb/elb >= 0)) || 
-						((2 + 2*root/ela/ela >= 0) && (2 + 2*root/elb/elb > 0)))
-					cErr+=zabs(tmp)+1e-30;
-				}
-			}
-
-		if(j==0){
-			roots[0]=iRoots[0];
-			roots[1]=iRoots[1];
-			roots[2]=iRoots[2];
-			roots[3]=iRoots[3];
-			tErr=cErr;
-		}else{
-			if(tErr>cErr && cErr>0){
-				roots[0]=iRoots[0];
-				roots[1]=iRoots[1];
-				roots[2]=iRoots[2];
-				roots[3]=iRoots[3];
-				tErr=cErr;
-			}
-		}
-		
+	s = makeComplex(0, 0);
+	if (cubeRoots[0].r > p/2) { 
+		s = cubeRoots[0];
+	} else if (cubeRoots[1].r > p/2) {
+		s = cubeRoots[1];
+	} else if (cubeRoots[2].r > p/2) {
+		s = cubeRoots[2];
 	}
+
+	sqcf1[0] = makeComplex(1, 0);
+	sqcf1[1] = zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), -1);
+	sqcf1[2] = zaddz(zdivz(makeComplex(q, 0), zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), 2)),s);
+	solve2(sqcf1[0], sqcf1[1], sqcf1[2], sqr1);
+
+	sqcf2[0] = makeComplex(1, 0);
+	sqcf2[1] = complexNthroot(zsubr(zmulr(s, 2), p), 2);
+	sqcf2[2] = zaddz(zdivz(makeComplex(-q, 0), zmulr(complexNthroot(zsubr(zmulr(s, 2), p), 2), 2)),s);
+	solve2(sqcf2[0], sqcf2[1], sqcf2[2], sqr2);
+		
+	roots[0] = zsubr(sqr1[0], a/4);
+	roots[1] = zsubr(sqr1[1], a / 4);
+	roots[2] = zsubr(sqr2[0], a / 4);
+	roots[3] = zsubr(sqr2[1], a / 4);
 }
 
 void solve3(myreal a, myreal b, myreal c, myreal d, mycomplex roots[3])
@@ -474,11 +435,11 @@ void solve3(myreal a, myreal b, myreal c, myreal d, mycomplex roots[3])
 	if (Q >= 0) { // in this case everything is fine and we simply extract root from a real number
 		tmp = -q/2 + sqrt(Q);
 		//al.r = sign(tmp) * pow(abs(tmp), 1/3.0);//exp(log(abs(tmp)) / 3);
-		al.r = cbrt(tmp, prec);
+		al.r = cbrt(tmp); //cbrt(tmp, prec);
 		al.i = 0;
 		tmp = -q/2 - sqrt(Q);
 		//be.r = sign(tmp) * pow(abs(tmp), 1/3.0);//exp(log(abs(tmp)) / 3);
-		be.r = cbrt(tmp, prec);
+		be.r = cbrt(tmp); //cbrt(tmp, prec);
 		be.i = 0;
 	} else { // here we have to compose a complex number: Re = -q/2, Im = +-sqrt(Q), 
 		// then, choose the first root variant out of three
@@ -524,21 +485,21 @@ int nDigits(myreal number)
 	return count;
 }
 
-myreal cbrt(myreal a, myreal e)
-{
-	myreal x[2];
-	int n;
-
-	if (a < 0) {
-		return - cbrt(-a, e);
-	}
-
-	n = nDigits(a);
-	x[1] = pow(10, n / 3);
-	do {
-		x[0] = x[1];
-		x[1] = 2*x[0]/3 + a/3/x[0]/x[0];
-	} while ((x[1]*x[1]*x[1] - a) >= e);
-	return x[1];
-}
+//myreal cbrt(myreal a, myreal e)
+//{
+//	myreal x[2];
+//	int n;
+//
+//	if (a < 0) {
+//		return - cbrt(-a, e);
+//	}
+//
+//	n = nDigits(a);
+//	x[1] = pow(10, n / 3);
+//	do {
+//		x[0] = x[1];
+//		x[1] = 2*x[0]/3 + a/3/x[0]/x[0];
+//	} while ((x[1]*x[1]*x[1] - a) >= e);
+//	return x[1];
+//}
 
