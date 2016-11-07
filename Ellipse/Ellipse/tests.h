@@ -1,6 +1,8 @@
 #ifndef TESTS_H
 #define TESTS_H
 
+#include "mycomplex.h"
+
 int complexTest(int output);
 int addTest(int output);
 
@@ -20,7 +22,6 @@ int solve3Test(int output);
 int solve4Test(int output);
 
 int distToEllipseTest(int output);
-int ellipseFittingTest(int output);
-int ellipseFittingCircleTest(int output);
+int ellipseFittingTestWrapper(int points_num, myreal Xc, myreal Yc, myreal a, myreal b, myreal alpha, myreal noise_level, myreal prec, int output);
 
 #endif

@@ -95,7 +95,7 @@ void ellipseFitting(myreal **X, int size, myreal ellipseParams[5])
 		ea = fabs(x[2] / ellipseParams[2]);
 		eb = fabs(x[3] / ellipseParams[3]);
 		s = sqrt(x[0]*x[0] + x[1]*x[1]);
-		printf("ea=%lf, eb=%lf, s=%lf\n", ea, eb, s);
+		//printf("ea=%lf, eb=%lf, s=%lf\n", ea, eb, s);
 
 		iter++;
 	} while((ea >= 1e-3) || (eb >= 1e-3) ||
