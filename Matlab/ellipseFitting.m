@@ -4,17 +4,17 @@ function [Xc, a, b, alpha] = ellipseFitting(X)
 
     m = size(X, 2);
 % Начальные параметры берем из аппроксимации кругом
-    %[Cs Rs] = massCenter(X);%circleFitting(X);%
-    %Xc = Cs;
-    %a = Rs;
-    %b = Rs;
-    %alpha = 0;
-    Xc = zeros(2, 1);
-    Xc(1) = -7.000022;
-    Xc(2) = 21.000046;
-    a = 129.819432;
-    b = 90.102916;
-    alpha = 0.394887;
+    [Cs Rs] = massCenter(X);%circleFitting(X);%
+    Xc = Cs;
+    a = Rs;
+    b = Rs;
+    alpha = 0;
+%     Xc = zeros(2, 1);
+%     Xc(1) = -7.000022;
+%     Xc(2) = 21.000046;
+%     a = 129.819432;
+%     b = 90.102916;
+%     alpha = 0.394887;
     
     
     J = zeros(2*m, 5);
