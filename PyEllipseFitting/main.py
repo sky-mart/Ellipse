@@ -2,8 +2,8 @@ __author__ = 'Vlad'
 
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy.linalg import solve
-from numpy import sin, cos, pi
+from numpy.linalg import solve, norm
+from numpy import sin, cos, pi, fabs
 
 
 def dist_to_ellipse(a, b, x):
@@ -40,15 +40,17 @@ def canonical_to_global(x, alpha, Xc):
     return np.dot(R, x) + Xc
 
 
-def ellipse_fitting(global_points):
+def ellipse_fitting(global_points, rel_prec=1e-6):
     N = len(global_points)
     J = np.zeros(shape=(N, 5), dtype=np.float32)  # jacobian
 
-    # TODO: consider starting parameters form circle fitting
-    Xc = np.array([0.01, 0.01])
-    a = 2.01
-    b = 1.01
-    alpha = pi / 6 + 0.01
+    # initial conditions
+    # TODO: check if there is singularity in case of circle
+    circle_Xc, circle_Yc, R = circle_fitting(global_points, rel_prec)
+    Xc = np.array([circle_Xc, circle_Yc])
+    a = R
+    b = R
+    alpha = 0
 
     while True:
         canon_points = np.array([global_to_canonical(X, alpha, Xc) for X in global_points])
@@ -197,18 +199,21 @@ def ellipse_fitting(global_points):
         b += da[3]
         alpha += da[4]
 
-        print "norm:", np.dot(da.transpose(), da)
-        if np.dot(da.transpose(), da) < 1e-20:
+        params = [Xc[0], Xc[1], a, b, alpha]
+
+        print "norm:", norm(da)
+        rel_prec_achieved = True
+        for i in xrange(5):
+            if abs(da[i] / params[i]) > rel_prec:
+                rel_prec_achieved = False
+                break
+        if rel_prec_achieved or norm(da) < 1e-12:
             return [Xc[0], Xc[1], a, b, alpha]
 
 
 def generate_points(points_num, Xc, a, b, alpha, noise_level=0):
-    step = 2 * np.pi / (points_num - 1)
+    step = 2 * np.pi / points_num
     points = np.zeros(shape=(points_num, 2), dtype=np.float32)
-    R = np.array([
-        [np.cos(alpha), -np.sin(alpha)],
-        [np.sin(alpha), np.cos(alpha)]
-    ])
 
     t = 0
     for i in xrange(points_num):
@@ -216,14 +221,65 @@ def generate_points(points_num, Xc, a, b, alpha, noise_level=0):
             a * np.cos(t),
             b * np.sin(t)
         ])
-        points[i] = np.dot(R, x) + Xc
+        points[i] = canonical_to_global(x, alpha, Xc)
         t += step
 
     return points
 
 
+def circle_fitting(points, rel_prec=1e-6):
+    N = len(points)
+    J = np.zeros(shape=(N, 3), dtype=np.float32)
+    e = np.zeros(shape=(N, 1), dtype=np.float32)
+
+    Xc, R = mass_center(points)
+
+    while True:
+        for i, X in enumerate(points):
+            Dc = norm(X - Xc)
+            e[i] = -abs(Dc - R)
+
+            if Dc == 0:
+                J[i, 0] = 0
+                J[i, 1] = 0
+                J[i, 2] = 1
+            elif Dc > R:
+                J[i, 0] = (Xc[0] - X[0]) / Dc
+                J[i, 1] = (Xc[1] - X[1]) / Dc
+                J[i, 2] = -1
+            else:
+                J[i, 0] = (X[0] - Xc[0]) / Dc
+                J[i, 1] = (X[1] - Xc[1]) / Dc
+                J[i, 2] = 1
+
+        Js = np.dot(J.transpose(), J)
+        es = np.dot(J.transpose(), e)
+        da = solve(Js, es)
+
+        Xc[0] += da[0]
+        Xc[1] += da[1]
+        R += da[2]
+
+        # print "norm:", norm(da)
+        if abs(da[0])/Xc[0] < rel_prec and abs(da[1])/Xc[1] < rel_prec and abs(da[2])/R:
+            return [np.asscalar(Xc[0]), np.asscalar(Xc[1]), np.asscalar(R)]
+
+
+def mass_center(points):
+    C = sum(points) / len(points)
+    R = np.array([norm(x - C) for x in points]).mean()
+    return C, R
+
+
 gp = generate_points(points_num=30, Xc=[0, 0], a=2, b=1, alpha=pi / 6)
-# plt.plot(gp[:, 0], gp[:, 1], 'bo')
+# # plt.plot(gp[:, 0], gp[:, 1], 'bo')
+# # plt.show()
+print ellipse_fitting(gp, 1e-4)
+
+# center = [2, 3]
+# radius = 4
+# points = generate_points(points_num=10, Xc=center, a=radius, b=radius, alpha=0)
+# print points
+# plt.plot(points[:, 0], points[:, 1], 'bo')
 # plt.show()
-print ellipse_fitting(gp)
 
