@@ -5,23 +5,29 @@ function [d] = distToEllipse(a, b, X0, Y0)
 if X0 == 0 && Y0 == 0
     d = min(a, b);
 else
-    m = max(a, b);
-    a = a / m;
-    b = b / m;
-    X0 = X0 / m;
-    Y0 = Y0 / m;
+%     m = max(a, b);
+%     a = a / m;
+%     b = b / m;
+%     X0 = X0 / m;
+%     Y0 = Y0 / m;
     
     % Решаем уравнение a0*l^4 + a1*l^3 + a2*l^2 + a3*l + a4 = 0
-    a0 = - 1 / (a^2 * b^2);
-    a1 = - 2/a^2 - 2/b^2;
-    a2 = X0^2/b^2 + Y0^2/a^2 - b^2/a^2 - a^2/b^2 - 4;
-    a3 = 2*X0^2 + 2*Y0^2 - 2*b^2 - 2*a^2;
-    a4 = X0^2*b^2 + Y0^2*a^2 - a^2*b^2;
+%     a0 = - 1 / (a^2 * b^2);
+%     a1 = - 2/a^2 - 2/b^2;
+%     a2 = X0^2/b^2 + Y0^2/a^2 - b^2/a^2 - a^2/b^2 - 4;
+%     a3 = 2*X0^2 + 2*Y0^2 - 2*b^2 - 2*a^2;
+%     a4 = X0^2*b^2 + Y0^2*a^2 - a^2*b^2;
+    a0 = 1;
+    a1 = 2 * (a^2 + b^2);
+    a2 = a^4 + b^4 + 4*a^2*b^2 - X0^2*a^2 - Y0^2*b^2;
+    a3 = 2*a^2*b^2 * (a^2 + b^2 - X0^2 - Y0^2);
+    a4 = a^2*b^2 * (a^2*b^2 - X0^2*b^2 - Y0^2*a^2);
 
-    %c = [a0, a1, a2, a3, a4];
+    c = [a0, a1, a2, a3, a4];
     [l1, l2, l3, l4] = solve4(a0, a1, a2, a3, a4);
     l = [l1, l2, l3, l4];
-    %r = roots(c)
+     disp(l);
+    r = roots(c)
 
     minX = - realmax;
     minY = - realmax;
@@ -54,17 +60,16 @@ else
             end
         end
     end
-    minX = minX * m;
-    minY = minY * m;
-    a = a * m;
-    b = b * m;
-    X0 = X0 * m;
-    Y0 = Y0 * m;
-
-%     d = sqrt((minX-X0)^2 + (minY-Y0)^2);
+%     minX = minX * m;
+%     minY = minY * m;
+%     a = a * m;
+%     b = b * m;
+%     X0 = X0 * m;
+%     Y0 = Y0 * m;
+    d = sqrt((minX-X0)^2 + (minY-Y0)^2);
 %end
 %end
-    d = [minX; minY];
+%     d = [minX; minY];
 %     Xc = minX
 %     Yc = minY
     
