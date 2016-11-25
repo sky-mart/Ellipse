@@ -38,7 +38,54 @@ class TestEllipse(unittest.TestCase):
         self.assertTrue(norm(C - center)/norm(center) < rel_prec)
         self.assertTrue(abs(R - radius)/R < rel_prec)
 
+    def angle_to_0_2pi(self, x, prec):
+        while x < 0 and abs(x) > prec:
+            x += 2 * np.pi
+        while x >= 2 * np.pi and abs(x - 2 * np.pi) > prec:
+            x -= 2 * np.pi
+        return x
 
+    def compare_angles(self, alpha, beta, prec):
+        alpha = self.angle_to_0_2pi(alpha, prec)
+        beta = self.angle_to_0_2pi(beta, prec)
+        return abs(alpha - beta) < prec
+
+    def compare_ellipse_params(self, src_params, params, rel_prec):
+        for i in xrange(2):
+            if src_params[i] == 0:
+                self.assertTrue(abs(params[i]) < rel_prec,
+                                msg="src_params: " + str(src_params))
+            else:
+                self.assertTrue(abs(1 - params[i]/src_params[i]) < rel_prec,
+                                msg="src_params: " + str(src_params))
+
+        if abs(1 - params[2]/src_params[2]) < rel_prec and abs(1 - params[3]/src_params[3]):
+            if abs(1 - src_params[2]/src_params[3]) > rel_prec:
+                self.assertTrue(self.compare_angles(params[4], src_params[4], rel_prec) or
+                                self.compare_angles(params[4], src_params[4] + np.pi, rel_prec),
+                                msg="src_params: " + str(src_params))
+        elif abs(1 - params[3]/src_params[2]) < rel_prec and abs(1 - params[2]/src_params[3]):
+            if abs(1 - src_params[2]/src_params[3]) > rel_prec:
+                self.assertTrue(self.compare_angles(params[4], src_params[4] + np.pi/2, rel_prec) or
+                                self.compare_angles(params[4], src_params[4] + 3*np.pi/2, rel_prec),
+                                msg="src_params: " + str(src_params))
+        else:
+            self.assertTrue(False, msg="src_params: " + str(src_params))
+
+    def test_ellipse_fitting(self):
+        rel_prec = 1e-6
+
+        a = 1.0
+        for points_num in xrange(30, 1001):
+            for Xc in np.linspace(-1.0, 1.0, 10):
+                for Yc in np.linspace(-1.0, 1.0, 10):
+                    for b in np.linspace(1.0, 10.0, 10):
+                        for alpha in np.linspace(0, 2*np.pi, 10):
+                            points = generate_points(points_num, [Xc, Yc], a, b, alpha)
+                            params = ellipse_fitting(points, rel_prec)
+
+                            src_params = [Xc, Yc, a, b, alpha]
+                            self.compare_ellipse_params(src_params, params, rel_prec)
 
 if __name__ == '__main__':
     unittest.main()

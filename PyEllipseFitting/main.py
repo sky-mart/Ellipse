@@ -7,6 +7,9 @@ from numpy import sin, cos, pi, fabs
 
 
 def dist_to_ellipse(a, b, x):
+    if x[0] == 0 and x[1] == 0:
+        return min(a, b)
+
     # Equation from necessary condition of conditional extrema
     # Looking for point on ellipse (Xe, Ye):
     # (x-Xe)^2 + (y-Ye)^2 -> min, when Xe^2/a^2 + Ye^2/b^2 = 1
@@ -61,6 +64,10 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
         for i in xrange(N):
             d, l = dls[i]
             x, y = canon_points[i]
+
+            if l == 0 and d == 0:
+                J[i] = [0, 0, 0, 0, 0]
+                continue
 
             # auxiliary variables
             dg_dl = 4*l**3 + 6*l**2 * (a**2 + b**2) + \
@@ -142,42 +149,6 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
                 y / (b**2 + l)**3 * (b**2*y * dl_dalpha + l*(b**2 + l) * dy_dalpha - l*y * db2_dalpha)
             )
 
-            # dd_dXc = (l/d) * (
-            #     a**2*x**2 / (a**2 + l)**3 *
-            #     (cos(alpha) * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) - sin(alpha) * dg_dy/dg_dl)
-            #     +
-            #     b**2*y**2 / (b**2 + l)**3 *
-            #     (-sin(alpha) * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) + cos(alpha) * dg_dx/dg_dl)
-            # )
-            #
-            # dd_dYc = (l / d) * (
-            #     a**2*x**2 / (a**2 + l)**3 *
-            #     (sin(alpha) * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) + cos(alpha) * dg_dy/dg_dl)
-            #     +
-            #     b**2*y**2 / (b**2 + l)**3 *
-            #     (cos(alpha) * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) + sin(alpha) * dg_dx/dg_dl)
-            # )
-            #
-            # dd_da = -(l/d) * (
-            #     a*x**2 * (a*dg_da/dg_dl + 2*l) / (a**2 + l)**3
-            #     +
-            #     b**2*x**2 * dg_da/dg_dl / (b**2 + l)**3
-            # )
-            #
-            # dd_db = -(l/d) * (
-            #     a**2*x**2 * dg_db/dg_dl / (a**2 + l)**3
-            #     +
-            #     b*x**2 * (b*dg_db/dg_dl + 2*l) / (b**2 + l)**3
-            # )
-            #
-            # dd_dalpha = (l/d) * (
-            #     a**2*x**2 / (a**2 + l)**3 *
-            #     (-y * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) - x * dg_dy/dg_dl)
-            #     +
-            #     b**2*y**2 / (b ** 2 + l) ** 3 *
-            #     (x * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) - y * dg_dx/dg_dl)
-            # )
-
             J[i] = np.array([
                 dd_dXc,
                 dd_dYc,
@@ -188,22 +159,26 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
 
         # solve linear system J * da = e
         # to find ellipse parameters' changes
-        Js = np.dot(J.transpose(), J)
-        es = np.dot(J.transpose(), e)
-        da = solve(Js, es)
-        # print da
+
+        if abs(1 - a/b) < rel_prec:
+            Js = np.dot(J[:, :4].transpose(), J[:, :4])
+            es = np.dot(J[:, :4].transpose(), e)
+            da = solve(Js, es)
+        else:
+            Js = np.dot(J.transpose(), J)
+            es = np.dot(J.transpose(), e)
+            da = solve(Js, es)
+            alpha += da[4]
 
         Xc[0] += da[0]
         Xc[1] += da[1]
         a += da[2]
         b += da[3]
-        alpha += da[4]
-
         params = [Xc[0], Xc[1], a, b, alpha]
 
         print "norm:", norm(da)
         rel_prec_achieved = True
-        for i in xrange(5):
+        for i in xrange(len(da)):
             if abs(da[i] / params[i]) > rel_prec:
                 rel_prec_achieved = False
                 break
@@ -221,7 +196,7 @@ def generate_points(points_num, Xc, a, b, alpha, noise_level=0):
             a * np.cos(t),
             b * np.sin(t)
         ])
-        points[i] = canonical_to_global(x, alpha, Xc)
+        points[i] = canonical_to_global(x, -alpha, Xc)
         t += step
 
     return points
@@ -270,16 +245,46 @@ def mass_center(points):
     R = np.array([norm(x - C) for x in points]).mean()
     return C, R
 
+points = generate_points(30, [-1, -1], 2.2, 1.5, 2*pi/9)
+params = ellipse_fitting(points)
+print params
+plt.plot(points[:, 0], points[:, 1], 'bo')
+plt.show()
 
-gp = generate_points(points_num=30, Xc=[0, 0], a=2, b=1, alpha=pi / 6)
-# # plt.plot(gp[:, 0], gp[:, 1], 'bo')
-# # plt.show()
-print ellipse_fitting(gp, 1e-4)
 
-# center = [2, 3]
-# radius = 4
-# points = generate_points(points_num=10, Xc=center, a=radius, b=radius, alpha=0)
-# print points
-# plt.plot(points[:, 0], points[:, 1], 'bo')
-# plt.show()
+# dd_dXc = (l/d) * (
+#     a**2*x**2 / (a**2 + l)**3 *
+#     (cos(alpha) * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) - sin(alpha) * dg_dy/dg_dl)
+#     +
+#     b**2*y**2 / (b**2 + l)**3 *
+#     (-sin(alpha) * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) + cos(alpha) * dg_dx/dg_dl)
+# )
+#
+# dd_dYc = (l / d) * (
+#     a**2*x**2 / (a**2 + l)**3 *
+#     (sin(alpha) * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) + cos(alpha) * dg_dy/dg_dl)
+#     +
+#     b**2*y**2 / (b**2 + l)**3 *
+#     (cos(alpha) * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) + sin(alpha) * dg_dx/dg_dl)
+# )
+#
+# dd_da = -(l/d) * (
+#     a*x**2 * (a*dg_da/dg_dl + 2*l) / (a**2 + l)**3
+#     +
+#     b**2*x**2 * dg_da/dg_dl / (b**2 + l)**3
+# )
+#
+# dd_db = -(l/d) * (
+#     a**2*x**2 * dg_db/dg_dl / (a**2 + l)**3
+#     +
+#     b*x**2 * (b*dg_db/dg_dl + 2*l) / (b**2 + l)**3
+# )
+#
+# dd_dalpha = (l/d) * (
+#     a**2*x**2 / (a**2 + l)**3 *
+#     (-y * (dg_dx/dg_dl + l*(a**2 + l)/a**2/x) - x * dg_dy/dg_dl)
+#     +
+#     b**2*y**2 / (b ** 2 + l) ** 3 *
+#     (x * (dg_dy/dg_dl + l*(b**2 + l)/b**2/y) - y * dg_dx/dg_dl)
+# )
 
