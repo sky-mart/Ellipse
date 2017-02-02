@@ -3,7 +3,7 @@ __author__ = 'Vlad'
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import solve, norm
-from numpy import sin, cos, pi, fabs
+from numpy import sin, cos, pi, arctan
 
 
 def dist_to_ellipse(a, b, x):
@@ -42,6 +42,8 @@ def canonical_to_global(x, alpha, Xc):
 
     return np.dot(R, x) + Xc
 
+def dist_to_straight_line(k1, k2, x):
+    return abs(x[1] - k1*x[0] - k2) / k1
 
 def ellipse_fitting(global_points, rel_prec=1e-6):
     N = len(global_points)
@@ -49,11 +51,55 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
 
     # initial conditions
     # TODO: check if there is singularity in case of circle
-    circle_Xc, circle_Yc, R = circle_fitting(global_points, rel_prec)
-    Xc = np.array([circle_Xc, circle_Yc])
-    a = R
-    b = R
-    alpha = 0
+    # circle_Xc, circle_Yc, R = circle_fitting(global_points, rel_prec)
+    # Xc = np.array([circle_Xc, circle_Yc])
+    # a = R
+    # b = R
+    # alpha = 0
+    Xc, _ = mass_center(global_points)
+    min_dist = norm(global_points[0] - Xc)
+    closest = global_points[0]
+    max_dist = norm(global_points[0] - Xc)
+    furthest = global_points[0]
+    for point in global_points[1:]:
+        dist = norm(point - Xc)
+        if dist < min_dist:
+            min_dist = dist
+            closest = point
+        elif dist > max_dist:
+            max_dist = dist
+            furthest = point
+
+    alpha = arctan((furthest[1] - Xc[1])/(furthest[0] - Xc[0]))
+    a = max_dist
+    b = min_dist
+    # k1, k2 = straight_line_lsfit(global_points)
+    # # np_k = np.polyfit(global_points[:, 0], global_points[:, 1], 1)
+    # alpha = arctan(k1)
+    # # TODO: check if x axis value is always bigger
+    # if dist_to_straight_line(k1, k2, closest) < dist_to_straight_line(k1, k2, furthest):
+    #     a = min_dist
+    #     b = max_dist
+    # else:
+    #     a = max_dist
+    #     b = min_dist
+
+    # straight_x = np.linspace(Xc[0]-max_dist, Xc[0]+max_dist)
+    # straight_y = straight_x * k1 + k2
+    #
+    # t = np.linspace(0, 2*np.pi, 50)
+    # small_circle_x = Xc[0] + min_dist*cos(t)
+    # small_circle_y = Xc[1] + min_dist*sin(t)
+    #
+    # big_circle_x = Xc[0] + max_dist*cos(t)
+    # big_circle_y = Xc[1] + max_dist*sin(t)
+    #
+    # plt.plot(global_points[:, 0], global_points[:, 1], 'bo', \
+    #          straight_x, straight_y, 'r', \
+    #          small_circle_x, small_circle_y, 'g', \
+    #          big_circle_x, big_circle_y, 'k')
+    # plt.show()
+    # visualize_fit(global_points, [Xc[0], Xc[1], a, b, alpha])
 
     while True:
         canon_points = np.array([global_to_canonical(X, alpha, Xc) for X in global_points])
@@ -156,11 +202,13 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
                 dd_db,
                 dd_dalpha
             ])
+        # print "error:", norm(e) ** 2
 
         # solve linear system J * da = e
         # to find ellipse parameters' changes
 
-        if abs(1 - a/b) < rel_prec:
+        # try:
+        if abs(1 - abs(a/b)) < rel_prec:
             Js = np.dot(J[:, :4].transpose(), J[:, :4])
             es = np.dot(J[:, :4].transpose(), e)
             da = solve(Js, es)
@@ -169,6 +217,8 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
             es = np.dot(J.transpose(), e)
             da = solve(Js, es)
             alpha += da[4]
+        # except np.linalg.LinAlgError as ex:
+        #     print ex
 
         Xc[0] += da[0]
         Xc[1] += da[1]
@@ -176,14 +226,27 @@ def ellipse_fitting(global_points, rel_prec=1e-6):
         b += da[3]
         params = [Xc[0], Xc[1], a, b, alpha]
 
-        print "norm:", norm(da)
-        rel_prec_achieved = True
-        for i in xrange(len(da)):
-            if abs(da[i] / params[i]) > rel_prec:
-                rel_prec_achieved = False
-                break
-        if rel_prec_achieved or norm(da) < 1e-12:
-            return [Xc[0], Xc[1], a, b, alpha]
+        # visualize_fit(points, params)
+        # print "error", norm(e)
+        # print params
+        # print da
+        # print '\n'
+
+        Xc_ok = [False, False]
+        for i in xrange(2):
+            Xc_ok[i] = check_pot_zero_param(Xc[i], da[i], rel_prec)
+
+        alpha_ok = False
+        if len(da) < 5:
+            alpha_ok = True
+        elif check_pot_zero_param(alpha, da[4], rel_prec):
+            alpha_ok = True
+
+        rel_prec_achieved = Xc_ok[0] and Xc_ok[1] and alpha_ok and \
+                            abs(da[2]/a) < rel_prec and abs(da[3]/b) < rel_prec
+
+        if rel_prec_achieved or norm(da) < rel_prec**2:
+            return [Xc[0], Xc[1], abs(a), abs(b), alpha]
 
 
 def generate_points(points_num, Xc, a, b, alpha, noise_level=0):
@@ -196,7 +259,7 @@ def generate_points(points_num, Xc, a, b, alpha, noise_level=0):
             a * np.cos(t),
             b * np.sin(t)
         ])
-        points[i] = canonical_to_global(x, -alpha, Xc)
+        points[i] = canonical_to_global(x, alpha, Xc)
         t += step
 
     return points
@@ -236,8 +299,20 @@ def circle_fitting(points, rel_prec=1e-6):
         R += da[2]
 
         # print "norm:", norm(da)
-        if abs(da[0])/Xc[0] < rel_prec and abs(da[1])/Xc[1] < rel_prec and abs(da[2])/R:
+        Xc_ok = [False, False]
+        for i in xrange(2):
+            Xc_ok[i] = check_pot_zero_param(Xc[i], da[i], rel_prec)
+
+        if Xc_ok[0] and Xc_ok[1] and abs(da[2])/R:
             return [np.asscalar(Xc[0]), np.asscalar(Xc[1]), np.asscalar(R)]
+
+
+# check potentially zero parameter
+def check_pot_zero_param(value, delta, rel_prec):
+    if abs(value) < rel_prec:  # == 0
+        return True if abs(delta) < rel_prec else False
+    else:
+        return True if abs(delta/value) < rel_prec else False
 
 
 def mass_center(points):
@@ -245,12 +320,43 @@ def mass_center(points):
     R = np.array([norm(x - C) for x in points]).mean()
     return C, R
 
-points = generate_points(30, [-1, -1], 2.2, 1.5, 2*pi/9)
-params = ellipse_fitting(points)
-print params
-plt.plot(points[:, 0], points[:, 1], 'bo')
-plt.show()
 
+def visualize_fit(points, params):
+    fitted = generate_points(30, [params[0], params[1]], params[2], params[3], params[4])
+    plt.plot(points[:, 0], points[:, 1], 'bo', fitted[:, 0], fitted[:, 1])
+    plt.show()
+
+def straight_line_lsfit(points):
+    sx = 0; sy = 0; sx2 = 0; sxy = 0;
+    for p in points:
+        sx += p[0]
+        sy += p[1]
+        sx2 += p[0] * p[0]
+        sxy += p[0] * p[1]
+
+    a11 = sx;   a12 = len(points);
+    a21 = sx2;  a22 = sx;
+    b1 = sy;    b2 = sxy;
+
+    k = (b1 * a22 - a12 * b2) / (a11 * a22 - a12 * a21)
+    b = (a11 * b2 - b1 * a21) / (a11 * a22 - a12 * a21)
+    return k, b
+
+
+# points = generate_points(30, (-1.0, -1.0), 1.0, 1.6363636363636365, 10*np.pi/9)
+# # # # plt.plot(points[:, 0], points[:, 1], 'bo')
+# # # # plt.show()
+# params = ellipse_fitting(points)
+# print params
+# visualize_fit(points, params)
+
+
+# First error type: singular matrix
+# 30 [-1.0, 0] 3 1.2 2*pi/9
+# 30 [-1.0, 0] 3 1.3 2*pi/9
+
+# Second error type: program does not respond
+# 30 [-1.0, 0] 3 1.4 2*pi/9
 
 # dd_dXc = (l/d) * (
 #     a**2*x**2 / (a**2 + l)**3 *
