@@ -4,9 +4,10 @@ from nose_parameterized import parameterized
 
 import unittest
 import numpy as np
-from main import dist_to_ellipse, mass_center, circle_fitting, \
+import ellipse
+from ellipse import dist_to_ellipse, mass_center, circle_fitting, \
     ellipse_fitting, ellipse_fitting_init_guess, generate_points, visualize_fit
-from numpy import abs, sqrt
+from numpy import sqrt
 from numpy.linalg import norm
 
 
@@ -61,23 +62,61 @@ def cartesian(arrays, out=None):
     return out
 
 
-print cartesian((
-        np.linspace(500, 501, 1),
-        np.linspace(1.0, 3.0, 5),
-        np.linspace(0, 2 * np.pi, 4),
-        np.linspace(0.3, 0.3, 1)))
-
 class TestEllipse(unittest.TestCase):
-    def test_dist_to_ellipse(self):
-        prec = 1e-12
-        self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[4, 0])[0] - 2) < prec)
-        self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[0, 5])[0] - 4) < prec)
-        self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[-3, 0])[0] - 1) < prec)
-        self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[0, -8])[0] - 7) < prec)
+    @parameterized.expand([
+        (1, 5, 6, [-2, -3]),                    # D > 0
+        (1, 1, 2.5, [-0.5+1.5j, -0.5-1.5j]),    # D < 0
+        (1, -4, 4, [2, 2]),                     # D == 0
+        (0, 5, 5, [-1, -1]),                    # a == 0, b != 0, c != 0
+        (0, 0, 3, -1),                          # a == 0, b == 0, c != 0
+        (0, 3, 0, [0, 0]),                      # a == 0, b != 0, c == 0
+        (1, 5, 0, [0, -5]),                     # a != 0, b != 0, c == 0
+        (1, 0, 9, [3j, -3j])                    # a != 0, b == 0, c != 0
+    ])
+    def test_solve2(self, a, b, c, roots):
+        self.assertTrue(ellipse.solve2(a, b, c) == roots)
 
-        # circle tests
-        self.assertTrue(abs(dist_to_ellipse(a=1, b=1, x=[2, 2])[0] - (sqrt(8) - 1)) < prec)
-        self.assertTrue(abs(dist_to_ellipse(a=1, b=1, x=[-3, 4])[0] - (5 - 1)) < prec)
+    @parameterized.expand([
+        (1, 5, 6, -3),                          # Q > 0
+        (1, 3, -3, -1),                         # Q < 0
+        (1, 6, 9, -1),                          # Q == 0
+        (1, 6, 9, 22),                          # random
+    ])
+    def test_solve3(self, a, b, c, d):
+        prec = 1e-6
+        roots = ellipse.solve3(a, b, c, d)
+        for r in roots:
+            eps = abs(a*r*r*r + b*r*r + c*r + d)
+            self.assertTrue(eps < prec)
+
+    @parameterized.expand([
+        (1, 5, 6, -3, -21)
+    ])
+    def test_solve4(self, a, b, c, d, e):
+        prec = 1e-6
+        roots = ellipse.solve4(a, b, c, d, e)
+        for r in roots:
+            eps = abs(a*r*r*r*r + b*r*r*r + c*r*r + d*r + e)
+            self.assertTrue(eps < prec)
+
+    @parameterized.expand([
+        (2, 1, [4, 0], 2),
+        (2, 1, [0, 5], 4),
+        (2, 1, [-3, 0], 1),
+        (2, 1, [0, -8], 7),
+        (1, 1, [2, 2], sqrt(8)-1),
+        (1, 1, [-3, 4], 5-1)
+    ])
+    def test_dist_to_ellipse(self, a, b, x, d):
+        prec = 1e-12
+        self.assertTrue(abs(dist_to_ellipse(a, b, x)[0] - d) < prec)
+        # self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[0, 5])[0] - 4) < prec)
+        # self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[-3, 0])[0] - 1) < prec)
+        # self.assertTrue(abs(dist_to_ellipse(a=2, b=1, x=[0, -8])[0] - 7) < prec)
+        #
+        # # circle tests
+        # self.assertTrue(abs(dist_to_ellipse(a=1, b=1, x=[2, 2])[0] - (sqrt(8) - 1)) < prec)
+        # self.assertTrue(abs(dist_to_ellipse(a=1, b=1, x=[-3, 4])[0] - (5 - 1)) < prec)
 
     def test_mass_center(self):
         prec = 1e-12
@@ -118,7 +157,7 @@ class TestEllipse(unittest.TestCase):
         np.linspace(500, 501, 1),
         np.linspace(1.0, 3.0, 5),
         np.linspace(0, 2 * np.pi, 4),
-        np.linspace(0.3, 0.3, 1)))
+        np.linspace(0.2, 0.2, 1)))
     )
     def test_ellipse_fitting_noisy(self, points_num, a, alpha, noise_level):
         rel_prec = 3e-1

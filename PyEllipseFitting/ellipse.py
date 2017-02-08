@@ -6,6 +6,98 @@ from numpy.linalg import solve, norm
 from numpy import sin, cos, pi, arctan
 
 
+# solve equation ax^2 + bx + c = 0
+def solve2(a, b, c):
+    if a == 0:
+        if b == 0:
+            return -1  # any x is a solution
+        return [-c / b, -c / b]
+
+    D = b*b - 4*a*c
+
+    if D > 0:
+        x1 = (-b + np.sqrt(D)) / (2*a)
+        x2 = (-b - np.sqrt(D)) / (2*a)
+        return [x1, x2]
+    elif D < 0:
+        x1 = complex(-b, np.sqrt(-D)) / (2*a)
+        x2 = complex(-b, -np.sqrt(-D)) / (2*a)
+        return [x1, x2]
+    else:
+        return [-b / (2*a), -b / (2*a)]
+
+
+def mypow(x, p):
+    if x >= 0:
+        return x ** p
+    return -((-x) ** p)
+
+
+# solve equation ax^3 + bx^2 + cx + d = 0
+def solve3(a, b, c, d):
+    a = float(a); b = float(b); c = float(c); d = float(d)
+    # reduce to the form y^3 + py + q = 0
+    # substitution: x = y - b/3a
+    p = c/a - b*b/(3*a*a)
+    q = 2*b*b*b/(27*a*a*a) - b*c/(3*a*a) + d/a
+
+    Q = p*p*p/27 + q*q/4
+    # Q > 0 - one real root and two complex conjugated roots
+    # Q = 0 - one single real root and one double real root, or,
+	#         if p = q = 0, then one triple real root
+	# Q < 0 - three real roots
+
+    if Q >= 0:
+        alpha   = mypow(-q/2 + np.sqrt(Q), 1.0/3)
+        beta    = mypow(-q/2 - np.sqrt(Q), 1.0/3)
+    else:
+        alpha   = complex(-q/2, np.sqrt(-Q)) ** (1.0/3)
+        beta    = complex(-q/2, -np.sqrt(-Q)) ** (1.0/3)
+
+    x1 = alpha + beta - b/(3*a)
+    x2 = complex(-(alpha+beta)/2, (alpha-beta)*np.sqrt(3)/2) - b/(3*a)
+    x3 = complex(-(alpha+beta)/2, -(alpha-beta)*np.sqrt(3)/2) - b/(3*a)
+    return [x1, x2, x3]
+
+
+# solve equation ax^4 + bx^3 + cx^2 + dx + e = 0
+def solve4(a, b, c, d, e):
+    a = float(a); b = float(b); c = float(c); d = float(d); e = float(e)
+    b /= a; c /= a; d /= a; e /= a;
+    a = b; b = c; c = d; d = e;
+
+    # reduce to the form y^4 + p*y^2 + q*y + r = 0
+    p = b - 3*a*a/8
+    q = a*a*a/8 - a*b/2 + c
+    r = - 3*a*a*a*a/256 + a*a*b/16 - c*a/4 + d
+
+    # obtain cubic resolvent A*s^3 + B*s^2 + C*s + D = 0
+    A = 2
+    B = -p
+    C = -2*r
+    D = r*p - q*q/4
+    s1, s2, s3 = solve3(A, B, C, D)
+
+    s = 0
+    if np.real(s1) > p/2:
+        s = s1
+    elif np.real(s2) > p/2:
+        s = s2
+    elif np.real(s3) > p/2:
+        s = s3
+
+    a1 = 1; b1 = -np.sqrt(2*s-p); c1 = q/(2*np.sqrt(2*s-p)) + s
+    a2 = 1; b2 = np.sqrt(2*s-p); c2 = -q/(2*np.sqrt(2*s-p)) + s
+
+    x1, x2 = solve2(a1, b1, c1)
+    x1 -= a/4
+    x2 -= a/4
+    x3, x4 = solve2(a2, b2, c2)
+    x3 -= a/4
+    x4 -= a/4
+    return [x1, x2, x3, x4]
+
+
 def dist_to_ellipse(a, b, x):
     if x[0] == 0 and x[1] == 0:
         return min(a, b)
@@ -21,9 +113,10 @@ def dist_to_ellipse(a, b, x):
         a ** 2 * b ** 2 * (a ** 2 * b ** 2 - b ** 2 * x[0] ** 2 - a ** 2 * x[1] ** 2)
     ]
 
-    # Choose lambda that gives minimal distance
-    lambdas = np.array([np.real(l) for l in np.roots(p) if np.isreal(l)])
-    distances = [np.sqrt((x[0] * l / (a ** 2 + l)) ** 2 + (x[1] * l / (b ** 2 + l)) ** 2) for l in lambdas]
+    # Choose lambda that gives minimal distance  solve4(p[0], p[1], p[2], p[3], p[4])
+    lambdas = np.array([np.real(l) for l in solve4(p[0], p[1], p[2], p[3], p[4]) if np.isreal(l)])
+    distances = [np.sqrt((x[0] * l / (a ** 2 + l)) ** 2 + (x[1] * l / (b ** 2 + l)) ** 2) \
+                 for l in lambdas if l != -a**2 and l != -b**2]
     d = min(distances)
     l = lambdas[distances.index(d)]
     return d, l
