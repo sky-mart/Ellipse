@@ -155,9 +155,9 @@ class TestEllipse(unittest.TestCase):
 
     @parameterized.expand(cartesian((
         np.linspace(500, 501, 1),
-        np.linspace(1.0, 3.0, 5),
-        np.linspace(0, 2 * np.pi, 4),
-        np.linspace(0.2, 0.2, 1)))
+        np.linspace(1.0, 3.0, 4),
+        np.linspace(-np.pi+np.pi/36, np.pi-np.pi/36, 4),
+        np.linspace(0.2, 0.3, 4)))
     )
     def test_ellipse_fitting_noisy(self, points_num, a, alpha, noise_level):
         rel_prec = 3e-1
@@ -175,31 +175,30 @@ class TestEllipse(unittest.TestCase):
             self.compare_ellipse_params(src_params, params, rel_prec)
 
     def compare_ellipse_params(self, src_params, params, rel_prec):
+        msg = "src_params: " + str(src_params) + "\nparams: " + str(params)
         for i in xrange(2):
             if src_params[i] == 0:
-                self.assertTrue(abs(params[i]) < rel_prec,
-                                msg="src_params: " + str(src_params))
+                self.assertTrue(abs(params[i]) < rel_prec, msg=msg)
             else:
-                self.assertTrue(abs(1 - params[i] / src_params[i]) < rel_prec,
-                                msg="src_params: " + str(src_params))
+                self.assertTrue(abs(1 - params[i] / src_params[i]) < rel_prec, msg=msg)
 
         if abs(1 - params[2] / src_params[2]) < rel_prec and abs(1 - params[3] / src_params[3]) < rel_prec:
             if abs(1 - src_params[2] / src_params[3]) > rel_prec:
                 self.assertTrue(self.compare_angles(params[4], src_params[4], rel_prec) or
                                 self.compare_angles(params[4], src_params[4] + np.pi, rel_prec),
-                                msg="src_params: " + str(src_params))
+                                msg=msg)
         elif abs(1 - params[3] / src_params[2]) < rel_prec and abs(1 - params[2] / src_params[3]) < rel_prec:
             if abs(1 - src_params[2] / src_params[3]) > rel_prec:
                 self.assertTrue(self.compare_angles(params[4], src_params[4] + np.pi / 2, rel_prec) or
                                 self.compare_angles(params[4], src_params[4] + 3 * np.pi / 2, rel_prec),
-                                msg="src_params: " + str(src_params))
+                                msg=msg)
         else:
-            self.assertTrue(False, msg="src_params: " + str(src_params))
+            self.assertTrue(False, msg=msg)
 
     def compare_angles(self, alpha, beta, prec):
-        if abs(alpha) < prec:
+        if abs(alpha) < 1e-6:
             alpha = 0
-        if abs(beta) < prec:
+        if abs(beta) < 1e-6:
             beta = 0
         alpha = self.angle_to_0_2pi(alpha, prec)
         beta = self.angle_to_0_2pi(beta, prec)

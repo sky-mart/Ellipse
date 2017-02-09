@@ -113,8 +113,10 @@ def dist_to_ellipse(a, b, x):
         a ** 2 * b ** 2 * (a ** 2 * b ** 2 - b ** 2 * x[0] ** 2 - a ** 2 * x[1] ** 2)
     ]
 
-    # Choose lambda that gives minimal distance  solve4(p[0], p[1], p[2], p[3], p[4])
-    lambdas = np.array([np.real(l) for l in solve4(p[0], p[1], p[2], p[3], p[4]) if np.isreal(l)])
+    # Choose lambda that gives minimal distance
+    roots = solve4(p[0], p[1], p[2], p[3], p[4])
+    # roots = np.roots(p)
+    lambdas = np.array([np.real(l) for l in roots if np.isreal(l)])
     distances = [np.sqrt((x[0] * l / (a ** 2 + l)) ** 2 + (x[1] * l / (b ** 2 + l)) ** 2) \
                  for l in lambdas if l != -a**2 and l != -b**2]
     d = min(distances)
@@ -212,7 +214,7 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
 
     Xc, a, b, alpha = init
 
-    MAX_ITER_COUNT = 30
+    MAX_ITER_COUNT = 50
     MAX_ERROR_INCREASE_COUNT = 4
     iter_count = 1
     while iter_count <= MAX_ITER_COUNT:
@@ -232,6 +234,8 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
             error_increase_count += 1
             if error_increase_count >= MAX_ERROR_INCREASE_COUNT:
                 break
+        else:
+            error_increase_count = 0
 
         # fill jacobian
         for i in xrange(N):
@@ -367,7 +371,7 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
         rel_prec_achieved = Xc_ok[0] and Xc_ok[1] and alpha_ok and \
                             abs(da[2]/a) < rel_prec and abs(da[3]/b) < rel_prec
 
-        if rel_prec_achieved or norm(da) < rel_prec**2:
+        if rel_prec_achieved or norm(da) < rel_prec**1.5:
             print iter_count
             return [Xc[0], Xc[1], abs(a), abs(b), alpha]
 
@@ -470,8 +474,9 @@ def straight_line_lsfit(points):
     return k, b
 
 
-# points = generate_points(500, [1.0, 1.0], 2.5, 1.0, np.pi/6, noise_level=0.3)
-# init = ellipse_fitting_init_guess(points)
-# print ellipse_fitting(points, init)
+if __name__ == '__main__':
+    points = generate_points(500, [1.0, 1.0], 1.5, 1.0, 3.0543261909900767, noise_level=0.2)
+    init = ellipse_fitting_init_guess(points)
+    print ellipse_fitting(points, init)
 
 
