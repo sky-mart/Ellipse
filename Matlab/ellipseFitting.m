@@ -22,6 +22,7 @@ function [Xc, a, b, alpha] = ellipseFitting(X)
     
     iter = 0;
     while 1
+        fprintf('»тераци€ %d\n', iter + 1);
         for i = 1:1:m
             C = cos(alpha);
             S = sin(alpha);
@@ -47,12 +48,18 @@ function [Xc, a, b, alpha] = ellipseFitting(X)
             end
         end
 
-        if a == b
+        if abs(a - b) < 1e-3
             Js = J(1:2*m,1:4);
             da = linsolve(Js,e);
+            for j = 1:1:4
+                fprintf('da(%d) = %f\n', j, da(j));
+            end
         else
             da = linsolve(J,e);
-            alpha = alpha + da(5);           
+            alpha = alpha + da(5); 
+            for j = 1:1:5
+                fprintf('da(%d) = %f\n', j, da(j));
+            end
         end
        
    
@@ -60,6 +67,8 @@ function [Xc, a, b, alpha] = ellipseFitting(X)
         Xc(2) = Xc(2) + da(2);
         a = a + da(3);
         b = b + da(4);
+        
+        
         
         ea = da(3) / a;
         eb = da(4) / b;
@@ -74,14 +83,14 @@ function [Xc, a, b, alpha] = ellipseFitting(X)
     
     fprintf('Ёллипс: %d итераций\n', iter);  
     
-    t = 0:0.0001:2*pi;
-    x = a*cos(t);
-    y = b*sin(t);
-    r = [x; y];
-    el = zeros(size(r));
-    for i = 1:1:size(r, 2)
-        el(:,i) = inv(R)*r(:,i) + Xc;
-    end
-    
-    plot(el(1,:), el(2,:), X(1,:), X(2,:), 'o');
+%     t = 0:0.0001:2*pi;
+%     x = a*cos(t);
+%     y = b*sin(t);
+%     r = [x; y];
+%     el = zeros(size(r));
+%     for i = 1:1:size(r, 2)
+%         el(:,i) = inv(R)*r(:,i) + Xc;
+%     end
+%     
+%     plot(el(1,:), el(2,:), X(1,:), X(2,:), 'o');
 end

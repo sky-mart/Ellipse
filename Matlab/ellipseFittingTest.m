@@ -19,4 +19,5 @@ for i = 1:1:points_num
     t = t + step;
 end
 
+plot(X(1,:), X(2,:), 'bo');
 [rest_Xc, rest_a, rest_b, rest_alpha] = ellipseFitting(X);
