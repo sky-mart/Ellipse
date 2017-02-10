@@ -1,7 +1,10 @@
 #include "ellipse_fitting.h"
 
 #include "math.h"
-#include "float.h"
+#include "float.h"      // FLT_MAX
+#include "stdlib.h"     // malloc
+#include "string.h"     // memset
+#include "arm_math.h"
 
 void cparts(complexf z, float *pr, float *pi)
 {
@@ -191,4 +194,256 @@ int dist_to_ellipse(float a, float b, float x[2], float *pd, float *pl)
         }
     }
     return 1;
+}
+
+#define MAX_ITER_COUNT              50
+#define MAX_ERROR_INCREASE_COUNT    4
+#define PARAMS_COUNT                5
+#define REL_PREC                    1e-5f
+
+void global_to_canonical(float X[2], float alpha, float Xc[2], float x[2])
+{
+    float ca = cosf(alpha);
+    float sa = sinf(alpha);
+    x[0] = ca * (X[0] - Xc[1]) + sa * (X[1] - Xc[1]);
+    x[1] = -sa * (X[0] - Xc[1]) + ca * (X[1] - Xc[1]);
+}
+
+void fill_jacobian( float *Ji, float x[2], float d, float l, float a, float b, float alpha)
+{
+    float dg_dl, dg_dx, dg_dy, dg_da, dg_db;
+    float dl_dx, dl_dy, dl_da, dl_db;
+    float dx_dXc, dx_dYc, dx_dalpha, dx_da, dx_db;
+    float dy_dXc, dy_dYc, dy_dalpha, dy_da, dy_db;
+    float dl_dXc, dl_dYc, dl_dalpha;
+    float da2_dXc, da2_dYc, da2_da, da2_db, da2_dalpha;
+    float db2_dXc, db2_dYc, db2_da, db2_db, db2_dalpha;
+    
+    if (l == 0 && d == 0) {
+        memset(Ji, 0, PARAMS_COUNT * sizeof(float));
+        return;
+    }
+    
+    // auxiliary variables
+    dg_dl = 4*l*l*l + 6*l*l * (a*a + b*a) + 
+        2*l * (a*a*a*a + b*b*b*b + 4*a*a*b*b - a*a*x[0]*x[0] - b*b*x[1]*x[1]) + 
+        2*a*a*b*a * (a*a + b*a - x[0]*x[0] - x[1]*x[1]);
+
+    dg_dx = -2*x[0]*a*a * powf(b*b + l, 2);
+
+    dg_dy = -2*x[1]*b*b * powf(a*b + l, 2);
+
+    dg_da = l*l*l * 4*a + l*l * 2*a * (2*a*a + 4*b*b - x[0]*x[0]) + 
+        l * 4*a*b*b * (2*a*a + b*b - x[0]*x[0] - x[1]*x[1]) + 
+        2*a*b*b * (2*a*a*b*b - b*b*x[0]*x[0] - 2*a*a*x[1]*x[1]);
+
+    dg_db = l*l*l * 4*b + l*l * 2*b * (2*b*b + 4*a*a - x[1]*x[1]) + 
+        l * 4*a*a*b * (a*a + 2*b*b - x[0]*x[0] - x[1]*x[1]) + 
+        2*a*a*b * (2*a*a*b*b - 2*b*b*x[0]*x[0] - a*a*x[1]*x[1]);
+    
+    
+    dl_dx = - dg_dx / dg_dl;
+    dl_dy = - dg_dy / dg_dl;
+    dl_da = - dg_da / dg_dl;
+    dl_db = - dg_db / dg_dl;
+    
+    dx_dXc = -cosf(alpha);
+    dx_dYc = -sinf(alpha);
+    dx_dalpha = x[1];
+    dx_da = 0;
+    dx_db = 0;
+    
+    dy_dXc = sinf(alpha);
+    dy_dYc = -cosf(alpha);
+    dy_dalpha = -x[0];
+    dy_da = 0;
+    dy_db = 0;
+    
+    dl_dXc = dl_dx * dx_dXc + dl_dy * dy_dXc;
+    dl_dYc = dl_dx * dx_dYc + dl_dy * dy_dYc;
+    dl_dalpha = dl_dx * dx_dalpha + dl_dy * dy_dalpha;
+    
+    da2_dXc = 0;
+    da2_dYc = 0;
+    da2_da = 2*a;
+    da2_db = 0;
+    da2_dalpha = 0;
+    
+    db2_dXc = 0;
+    db2_dYc = 0;
+    db2_da = 0;
+    db2_db = 2*b;
+    db2_dalpha = 0;
+    
+    // dd_dXc
+    Ji[0] = (l/d) * (
+        x[0] / powf(a*a + l, 3) * (a*a*x[0] * dl_dXc + l*(a*a + l) * dx_dXc - l*x[0] * da2_dXc)
+        +
+        x[1] / powf(b*b + l, 3) * (b*b*x[1] * dl_dXc + l*(b*b + l) * dy_dXc - l*x[1] * db2_dXc)
+    );
+    
+    // dd_dYc
+    Ji[1] = (l/d) * (
+        x[0] / powf(a*a + l, 3) * (a*a*x[0] * dl_dYc + l*(a*a + l) * dx_dYc - l*x[0] * da2_dYc)
+        +
+        x[1] / powf(b*b + l, 3) * (b*b*x[1] * dl_dYc + l*(b*b + l) * dy_dYc - l*x[1] * db2_dYc)
+    );
+    
+    // dd_da
+    Ji[2] = (l/d) * (
+        x[0] / powf(a*a + l, 3) * (a*a*x[0] * dl_da + l*(a*a + l) * dx_da - l*x[0] * da2_da)
+        +
+        x[1] / powf(b*b + l, 3) * (b*b*x[1] * dl_da + l*(b*b + l) * dy_da - l*x[1] * db2_da)
+    );
+    
+    // dd_db
+    Ji[3] = (l/d) * (
+        x[0] / powf(a*a + l, 3) * (a*a*x[0] * dl_db + l*(a*a + l) * dx_db - l*x[0] * da2_db)
+        +
+        x[1] / powf(b*b + l, 3) * (b*b*x[1] * dl_db + l*(b*b + l) * dy_db - l*x[1] * db2_db)
+    );
+    
+    // dd_alpha
+    Ji[4] = (l/d) * (
+        x[0] / powf(a*a + l, 3) * (a*a*x[0] * dl_dalpha + l*(a*a + l) * dx_dalpha - l*x[0] * da2_dalpha)
+        +
+        x[1] / powf(b*b + l, 3) * (b*b*x[1] * dl_dalpha + l*(b*b + l) * dy_dalpha - l*x[1] * db2_dalpha)
+    );
+}
+
+/*
+* Solves system of linear algebraic equations Ax = b
+* Returns 1 on success
+*/
+int linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb, arm_matrix_instance_f32 *px)
+{
+    return 1;
+}
+
+// check potentially zero parameter
+uint8_t check_pot_zero_param(float value, float delta)
+{
+    if (fabsf(value) < REL_PREC) {  // == 0
+        return (abs(delta) < REL_PREC) ? 1 : 0;
+    } else {
+        return (abs(delta/value) < REL_PREC) ? 1 : 0;
+    }
+}
+
+float norm(float *v, int n) 
+{
+    float result;
+    arm_dot_prod_f32(v, v, n, &result);
+    return sqrtf(result);
+}
+
+int ellipse_fitting(float **points, int N, 
+                    float init_Xc[2], float init_a, float init_b, float init_alpha,
+                    float Xc[2], float *pa, float *pb, float *palpha)
+{
+    int i;
+    int iter_count = 1;
+    float a, b, alpha;
+    float x[2], d, l;
+    
+    float *J_data, *Jt_data, *e_data;
+    float Js_data[PARAMS_COUNT * PARAMS_COUNT];
+    float es_data[PARAMS_COUNT];
+    float da_data[PARAMS_COUNT];
+    arm_matrix_instance_f32 J, Jt, e, Js, es, da;
+    
+    uint8_t Xc_ok[2], alpha_ok;
+    uint8_t rel_prec_achieved;
+    
+    Xc[0]   = init_Xc[0]; 
+    Xc[1]   = init_Xc[1];
+    a       = init_a;
+    b       = init_b;
+    alpha   = init_alpha;
+    
+    // alloc memory 
+    J_data  = (float *)malloc(N * PARAMS_COUNT * sizeof(float));
+    Jt_data = (float *)malloc(N * PARAMS_COUNT * sizeof(float));
+    e_data  = (float *)malloc(N * sizeof(float));
+    
+    while (iter_count <= MAX_ITER_COUNT) {
+        for (i = 0; i < N; i++) {
+            global_to_canonical(points[i], alpha, Xc, x);
+            if (!dist_to_ellipse(a, b, x, &d, &l)) {
+                return 0;
+            }
+            e_data[i] = -d;
+            
+            
+            if (fabsf(1 - fabsf(a/b)) < REL_PREC) {
+                fill_jacobian(J_data + i*(PARAMS_COUNT-1), x, d, l, a, b, alpha);
+            } else {
+                fill_jacobian(J_data + i*PARAMS_COUNT, x, d, l, a, b, alpha);
+            }
+        }
+        
+        // solve linear system J * da = e
+        // to find ellipse parameters' changes
+        if (fabsf(1 - fabsf(a/b)) < REL_PREC) {
+            arm_mat_init_f32(&J, N, PARAMS_COUNT-1, J_data);
+            arm_mat_init_f32(&Jt, PARAMS_COUNT-1, N, Jt_data);
+            arm_mat_init_f32(&e, N, 1, e_data);
+            arm_mat_init_f32(&Js, PARAMS_COUNT-1, PARAMS_COUNT-1, Js_data);
+            arm_mat_init_f32(&es, PARAMS_COUNT-1, 1, es_data);
+            arm_mat_init_f32(&da, PARAMS_COUNT-1, 1, da_data);
+
+            arm_mat_trans_f32(&J, &Jt);
+            arm_mat_mult_f32(&Jt, &J, &Js);
+            arm_mat_mult_f32(&Jt, &e, &es);
+
+            if (!linsolve(&Js, &es, &da)) {
+                return 0;
+            }
+        } else {
+            arm_mat_init_f32(&J, N, PARAMS_COUNT, J_data);
+            arm_mat_init_f32(&Jt, PARAMS_COUNT, N, Jt_data);
+            arm_mat_init_f32(&e, N, 1, e_data);
+            arm_mat_init_f32(&Js, PARAMS_COUNT, PARAMS_COUNT, Js_data);
+            arm_mat_init_f32(&es, PARAMS_COUNT, 1, es_data);
+            arm_mat_init_f32(&da, PARAMS_COUNT, 1, da_data);
+
+            arm_mat_trans_f32(&J, &Jt);
+            arm_mat_mult_f32(&Jt, &J, &Js);
+            arm_mat_mult_f32(&Jt, &e, &es);
+
+            if (!linsolve(&Js, &es, &da)) {
+                return 0;
+            }
+            alpha += da_data[4];
+        }
+        
+        Xc[0]   += da_data[0];
+        Xc[1]   += da_data[1];
+        a       += da_data[2];
+        b       += da_data[3];
+        
+        memset(Xc_ok, 0, 2 * sizeof(uint8_t));
+        for (i = 0; i < 2; i++) {
+            Xc_ok[i] = check_pot_zero_param(Xc[i], da_data[i]);
+        }
+        
+        alpha_ok = 0;
+        if (da.numRows < 5) 
+            alpha_ok = 1;
+        else if (check_pot_zero_param(alpha, da_data[4]))
+            alpha_ok = 1;
+
+        rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok && 
+                            fabsf(da_data[2]/a) < REL_PREC && fabs(da_data[3]/b) < REL_PREC;
+        
+        if (rel_prec_achieved || norm(da_data, da.numRows) < powf(REL_PREC, 1.5)) {
+            *pa = a;
+            *pb = b;
+            *palpha = alpha;
+            return 1;
+        }
+        
+        iter_count++;
+    }
+    return 0;
 }
