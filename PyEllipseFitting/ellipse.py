@@ -1,3 +1,5 @@
+# _*_ coding: utf-8
+
 __author__ = 'Vlad'
 
 import numpy as np
@@ -339,11 +341,13 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
         if abs(1 - abs(a/b)) < rel_prec:
             Js = np.dot(J[:, :4].transpose(), J[:, :4])
             es = np.dot(J[:, :4].transpose(), e)
-            da = solve(Js, es)
+            # da = solve(Js, es)
+            da = linsolve(Js, es)
         else:
             Js = np.dot(J.transpose(), J)
             es = np.dot(J.transpose(), e)
-            da = solve(Js, es)
+            # da = solve(Js, es)
+            da = linsolve(Js, es)
             alpha += da[4]
 
         Xc[0] += da[0]
@@ -474,9 +478,143 @@ def straight_line_lsfit(points):
     return k, b
 
 
+def ludcmp(A):
+    N = A.shape[0]
+    vv = np.zeros((N, 1))
+    indx = np.zeros((N, 1), dtype=int)
+
+    # calculate the biggest elements in every row
+    for i in xrange(N):
+        big = 0.0
+        for j in xrange(N):
+            temp = abs(A[i][j])
+            if temp > big:
+                big = temp
+        if big == 0.0:
+            print 'Singular matrix in routine ludcmp'
+            return
+        vv[i] = 1.0 / big
+
+    for j in xrange(N):
+        # calculate elements of L
+        for i in xrange(j):
+            sum = A[i, j]
+            for k in xrange(i):
+                sum -= A[i, k] * A[k, j]
+            A[i, j] = sum
+
+        # calculate elements of U
+        big = 0.0
+        for i in xrange(j, N):
+            sum = A[i, j]
+            for k in xrange(j):
+                sum -= A[i, k] * A[k, j]
+            A[i, j] = sum
+
+            # find the row with the biggest jth element
+            dum = vv[i] * abs(sum)
+            if dum >= big:
+                big = dum
+                imax = i
+
+        # figure out if we need to interchange rows
+        if j != imax:
+            for k in xrange(N):
+                dum = A[imax, k]
+                A[imax, k] = A[j, k]
+                A[j, k] = dum
+            vv[imax] = vv[j]
+        # remember where the jth row goes
+        indx[j] = imax
+
+        # carry out division by the revealed biggest jj-th element
+        dum = 1.0 / A[j, j]
+        for i in xrange(j+1, N):
+            A[i][j] *= dum
+
+    return indx
+
+
+def lubksb(A, b, indx):
+    N = A.shape[0]
+    ii = -1
+    for i in xrange(N):
+        ip = int(indx[i])
+        sum = b[ip]
+        b[ip] = b[i]
+        if ii >= 0:
+            for j in xrange(ii, i):
+                sum -= A[i, j] * b[j]
+        elif sum:
+            ii = i
+        b[i] = sum
+
+    for i in np.arange(N-1, -1, -1):
+        sum = b[i]
+        for j in xrange(i+1, N):
+            sum -= A[i, j] * b[j]
+        b[i] = sum / A[i, i]
+    return b
+
+def linsolve(A, b):
+    indx = ludcmp(A)
+    return lubksb(A, b, indx)
+
+
 if __name__ == '__main__':
-    points = generate_points(500, [1.0, 1.0], 1.5, 1.0, 3.0543261909900767, noise_level=0.2)
-    init = ellipse_fitting_init_guess(points)
-    print ellipse_fitting(points, init)
+    l = np.array([[1.0, 0.0, 0.0],
+                  [1.0/7.0, 1.0, 0.0],
+                  [0.0, 1.5, 1.0]])
+    u = np.array([[7.0, 0.0, 2.0],
+                  [0, 2.0, 33.0/7.0],
+                  [0, 0, 13.5]])
+
+    A = np.array([[1.0, 2.0, 5.0],
+                  [0.0, 3.0, 21.0],
+                  [7.0, 0.0, 2.0]])
+    # print ludcmp(A)
+    A_src = np.copy(A)
+    #
+    # N = A.shape[0]
+    # LU, indx = ludcmp(A)
+
+    # for i in xrange(N):
+    #     for j in xrange(N):
+    #         temp = A_src[i, j]
+    #         A_src[i, j] = A_src[indx[i], j]
+    #         A_src[indx[i], j] = temp
+    #
+    #
+    # L = np.zeros((N, N))
+    # U = np.zeros((N, N))
+    # for i in xrange(N):
+    #     L[i, i] = 1.0
+    #     for j in xrange(i):
+    #         L[i, j] = A[i, j]
+    #     for j in xrange(i, N):
+    #         U[i, j] = A[i, j]
+    #
+    # print LU
+    # print L
+    # print U
+    # print np.dot(L, U)
+    # print np.dot(L, U) - A_src
+
+
+    b = np.array([3.0, 1.0, 2.5])
+    b_src = np.copy(b)
+
+    # for i in xrange(N):
+    #     temp = b_src[i]
+    #     b_src[i] = b_src[indx[i]]
+    #     b_src[indx[i]] = temp
+
+    # lubksb(A, b, indx)
+    # print b
+    print np.dot(A_src, linsolve(A, b)) - b_src
+
+    # points = generate_points(500, [1.0, 1.0], 1.5, 1.0, 3.0543261909900767, noise_level=0.2)
+    # init = ellipse_fitting_init_guess(points)
+    # print ellipse_fitting(points, init)
 
 

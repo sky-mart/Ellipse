@@ -6,7 +6,8 @@ import unittest
 import numpy as np
 import ellipse
 from ellipse import dist_to_ellipse, mass_center, circle_fitting, \
-    ellipse_fitting, ellipse_fitting_init_guess, generate_points, visualize_fit
+    ellipse_fitting, ellipse_fitting_init_guess, generate_points, \
+    ludcmp, lubksb, linsolve
 from numpy import sqrt
 from numpy.linalg import norm
 
@@ -63,6 +64,46 @@ def cartesian(arrays, out=None):
 
 
 class TestEllipse(unittest.TestCase):
+    @parameterized.expand([
+        ('lil', np.array([[1.0, 2.0, 5.0], [0.0, 3.0, 21.0], [7.0, 0.0, 2.0]])),
+        ('3x3', np.random.rand(3, 3)),
+        ('4x4', np.random.rand(4, 4)),
+        ('5x5', np.random.rand(5, 5)),
+    ])
+    def test_ludcmp(self, name, A):
+        prec = 1e-10
+        N = A.shape[0]
+        A_src = np.copy(A)
+        indx = ludcmp(A)
+
+        L = np.zeros((N, N))
+        U = np.zeros((N, N))
+        for i in xrange(N):
+            L[i, i] = 1.0
+            for j in xrange(i):
+                L[i, j] = A[i, j]
+            for j in xrange(i, N):
+                U[i, j] = A[i, j]
+
+        for i in xrange(N):
+            for j in xrange(N):
+                temp = A_src[i, j]
+                A_src[i, j] = A_src[indx[i], j]
+                A_src[indx[i], j] = temp
+
+        self.assertTrue((np.dot(L, U) - A_src).max() < prec)
+
+    @parameterized.expand([
+        (np.array([[1.0, 2.0, 5.0], [0.0, 3.0, 21.0], [7.0, 0.0, 2.0]]),
+        np.array([3.0, 1.0, 2.5]))
+    ])
+    def test_linsolve(self, A, b):
+        prec = 1e-10
+        A_src = np.copy(A)
+        b_src = np.copy(b)
+        x = linsolve(A, b)
+        self.assertTrue((np.dot(A_src, x) - b_src).max() < prec)
+
     @parameterized.expand([
         (1, 5, 6, [-2, -3]),                    # D > 0
         (1, 1, 2.5, [-0.5+1.5j, -0.5-1.5j]),    # D < 0
