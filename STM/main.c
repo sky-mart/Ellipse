@@ -11,6 +11,9 @@ int main()
     if (!testset_dist_to_ellipse()) {
         i = 21;
     }
+    if (!testset_linsolve()) {
+        i = 21;
+    }
     
     while (1) {}
 }

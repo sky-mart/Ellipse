@@ -4,7 +4,6 @@
 #include "float.h"      // FLT_MAX
 #include "stdlib.h"     // malloc
 #include "string.h"     // memset
-#include "arm_math.h"
 
 void cparts(complexf z, float *pr, float *pi)
 {
@@ -312,11 +311,124 @@ void fill_jacobian( float *Ji, float x[2], float d, float l, float a, float b, f
 }
 
 /*
+* LU decomposition of matrix A
+* Matrices L and U are return in the respective parts of the matrix A 
+* indx - row perturbations array
+* Return 1 on success, 0 if the matrix is singular
+*/
+int ludcmp(float **a, int n, int *indx) 
+{
+    int i, imax, j, k;
+    float big, dum, sum, temp;
+    float vv[MAX_DCMP_N];
+
+    // calculate the biggest elements in every row
+    for (i = 0; i < n; i++) {
+        big = 0.0f;
+        for (j = 0; j < n; j++) { 
+            if ((temp = fabsf(a[i][j])) > big)
+                big = temp;
+        }
+        if (big == 0.0f)
+            return 0; // Singular matrix in routine ludcmp
+        vv[i] = (1.0f / big);
+    }
+
+    for (j = 0; j < n; j++) {
+        // calculate elements of U
+        for (i = 0; i < j; i++) {
+            sum = a[i][j];
+            for (k = 0; k < i; k++) 
+                sum -= (a[i][k] * a[k][j]);
+            a[i][j] = sum;
+        }
+        // calculate elements of L
+        big = 0.0f;
+        for (i = j; i < n; i++) {
+            sum = a[i][j];
+            for (k = 0; k < j; k++)
+                sum -= a[i][k] * a[k][j];
+            a[i][j] = sum;
+
+            // find the row with the biggest jth element
+            if ((dum = vv[i] * fabsf(sum)) >= big) {
+                big = dum;
+                imax = i;
+            }
+        }
+        // figure out if we need to interchange rows
+        if (j != imax) {
+            for (k = 0; k < n; k++) {
+                dum = a[imax][k];
+                a[imax][k] = a[j][k];
+                a[j][k] = dum;
+            }
+            vv[imax] = vv[j];
+        }
+        // remember where the jth row goes
+        indx[j] = imax;
+
+        // carry out division by the revealed biggest jj-th element
+        dum = 1.0f / a[j][j];
+        for (i = j + 1; i < n; i++)
+            a[i][j] *= dum;
+    }
+    //free(vv);
+    return 1;
+}
+
+/*
+* Solves the set of linear equations Ax = b
+* a     - matrix LU-decomposition returned by ludcmp
+* indx  - vector of row perturbations returned by ludcmp
+* b     - right side vector and solution is returned in it 
+*/
+void lubksb(float **a, int n, float *b, int *indx)
+{
+    int i, ii = -1, ip, j;
+    float sum;
+
+    for (i = 0; i < n; i++) {
+        ip = indx[i];
+        sum = b[ip];
+        b[ip] = b[i];
+        if (ii >= 0) {
+            for (j = ii; ii < i; ii++)
+                sum -= a[i][j] * b[j];
+        }
+        else if (sum)
+            ii = i;
+        b[i] = sum;
+    }
+    for (i = n - 1; i >= 0; i--) {
+        sum = b[i];
+        for (j = i + 1; j < n; j++)
+            sum -= a[i][j] * b[j];
+        b[i] = sum / a[i][i];
+    }
+}
+
+/*
 * Solves system of linear algebraic equations Ax = b
+* Returns the solution in matrix b
 * Returns 1 on success
 */
-int linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb, arm_matrix_instance_f32 *px)
+int linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb)
 {
+    float *a[MAX_DCMP_N], *pdata;
+    int i, n, indx[MAX_DCMP_N];
+    
+    n = pA->numRows;
+    pdata = pA->pData;
+    
+    for (i = 0; i < pA->numRows; i++) {
+        a[i] = &(pdata[i*n]);
+    }
+    
+    if (!ludcmp(a, n, indx))
+        return 0;
+    
+    lubksb(a, n, pb->pData, indx);
     return 1;
 }
 
@@ -349,7 +461,6 @@ int ellipse_fitting(float **points, int N,
     float *J_data, *Jt_data, *e_data;
     float Js_data[PARAMS_COUNT * PARAMS_COUNT];
     float es_data[PARAMS_COUNT];
-    float da_data[PARAMS_COUNT];
     arm_matrix_instance_f32 J, Jt, e, Js, es, da;
     
     uint8_t Xc_ok[2], alpha_ok;
@@ -390,13 +501,12 @@ int ellipse_fitting(float **points, int N,
             arm_mat_init_f32(&e, N, 1, e_data);
             arm_mat_init_f32(&Js, PARAMS_COUNT-1, PARAMS_COUNT-1, Js_data);
             arm_mat_init_f32(&es, PARAMS_COUNT-1, 1, es_data);
-            arm_mat_init_f32(&da, PARAMS_COUNT-1, 1, da_data);
 
             arm_mat_trans_f32(&J, &Jt);
             arm_mat_mult_f32(&Jt, &J, &Js);
             arm_mat_mult_f32(&Jt, &e, &es);
 
-            if (!linsolve(&Js, &es, &da)) {
+            if (!linsolve(&Js, &es)) {
                 return 0;
             }
         } else {
@@ -405,38 +515,37 @@ int ellipse_fitting(float **points, int N,
             arm_mat_init_f32(&e, N, 1, e_data);
             arm_mat_init_f32(&Js, PARAMS_COUNT, PARAMS_COUNT, Js_data);
             arm_mat_init_f32(&es, PARAMS_COUNT, 1, es_data);
-            arm_mat_init_f32(&da, PARAMS_COUNT, 1, da_data);
 
             arm_mat_trans_f32(&J, &Jt);
             arm_mat_mult_f32(&Jt, &J, &Js);
             arm_mat_mult_f32(&Jt, &e, &es);
 
-            if (!linsolve(&Js, &es, &da)) {
+            if (!linsolve(&Js, &es)) {
                 return 0;
             }
-            alpha += da_data[4];
+            alpha += es_data[4];
         }
-        
-        Xc[0]   += da_data[0];
-        Xc[1]   += da_data[1];
-        a       += da_data[2];
-        b       += da_data[3];
+        // solution is in the vector ls
+        Xc[0]   += es_data[0];
+        Xc[1]   += es_data[1];
+        a       += es_data[2];
+        b       += es_data[3];
         
         memset(Xc_ok, 0, 2 * sizeof(uint8_t));
         for (i = 0; i < 2; i++) {
-            Xc_ok[i] = check_pot_zero_param(Xc[i], da_data[i]);
+            Xc_ok[i] = check_pot_zero_param(Xc[i], es_data[i]);
         }
         
         alpha_ok = 0;
         if (da.numRows < 5) 
             alpha_ok = 1;
-        else if (check_pot_zero_param(alpha, da_data[4]))
+        else if (check_pot_zero_param(alpha, es_data[4]))
             alpha_ok = 1;
 
         rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok && 
-                            fabsf(da_data[2]/a) < REL_PREC && fabs(da_data[3]/b) < REL_PREC;
+                            fabsf(es_data[2]/a) < REL_PREC && fabs(es_data[3]/b) < REL_PREC;
         
-        if (rel_prec_achieved || norm(da_data, da.numRows) < powf(REL_PREC, 1.5)) {
+        if (rel_prec_achieved || norm(es_data, da.numRows) < powf(REL_PREC, 1.5)) {
             *pa = a;
             *pb = b;
             *palpha = alpha;
