@@ -19,4 +19,7 @@ int testset_ludcmp(void);
 int test_linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb);
 int testset_linsolve(void);
 
+int test_ellipse_fitting(int points_num, float a, float alpha, float noise_level);
+int testset_ellipse_fitting(void);
+
 #endif // ELLIPSE_FITTING_TESTS_H

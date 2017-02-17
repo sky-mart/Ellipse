@@ -3,9 +3,33 @@
 #include "stdlib.h"
 #include "string.h"
 
-#define EQ_PREC     5e-5f   // precision for equations    
-#define DST_PREC    1e-6f   // precision for distance
-#define MAT_PREC    1e-6f   // precision for matrices
+#define EQ_PREC         5e-5f   // precision for equations    
+#define DST_PREC        1e-6f   // precision for distance
+#define MAT_PREC        1e-6f   // precision for matrices
+#define ANGLE_PREC      1e-3f
+
+
+float **alloc_array2d(size_t nRows, size_t nCols)
+{
+    float *t1, **t2;
+    int i;
+    if ( !(t1 = (float *)malloc(nRows * nCols * sizeof(float))) )
+        return NULL;
+    if ( !(t2 = (float **)malloc(nRows * sizeof(float*))) ) {
+        free(t1);
+        return NULL;
+    }
+    for (i = 0; i < nRows; i++) {
+        t2[i] = &t1[i * nCols];
+    }
+    return t2;
+}
+
+void free_array2d(float **a)
+{
+    free(a[0]);
+    free(a);
+}
 
 int test_solve2(float a, float b, float c)
 {
@@ -180,11 +204,9 @@ int testset_ludcmp()
 {
     int result = 1;
     float **a;
-    int i;
     
-    a = (float **)malloc(5 * sizeof(float *));
-    for (i = 0; i < 5; i++) {
-        a[i] = (float *)malloc(5 * sizeof(float));
+    if ( !(a = alloc_array2d(5, 5)) ) {
+        return 0;
     }
     a[0][0] = 1.0f;     a[0][1] = 2.0f;     a[0][2] = 5.0f;
     a[1][0] = 0.0f;     a[1][1] = 3.0f;     a[1][2] = 21.0f;
@@ -204,10 +226,7 @@ int testset_ludcmp()
     a[4][0] = 0.3f;     a[4][1] = 3.8f;     a[4][2] = 7.4f;     a[4][3] = 4.7f;     a[4][4] = -26.0f;
     result &= test_ludcmp(a, 5);
     
-    for (i = 0; i < 5; i++) {
-        free(a[i]);
-    }
-    free(a);
+    free_array2d(a);
     return result;
 }
 
@@ -266,5 +285,113 @@ int testset_linsolve()
     
     result &= testset_ludcmp();
     result &= test_linsolve(&A, &b);
+    return result;
+}
+
+float randf(float from, float to)
+{
+    float val = ((float)rand()) / RAND_MAX;
+    return (to - from) * val + from;
+}
+
+void generate_points(int points_num, struct ellipse *pEl, float noise_level, float **points)
+{
+    float step = 2 * M_PI / points_num;
+    float t, x[2];
+    int i;
+
+    t = 0;
+    for (i = 0; i < points_num; i++) {
+        x[0] = pEl->a * cosf(t) * (1 + randf(-noise_level, noise_level));
+        x[1] = pEl->b * sinf(t) * (1 + randf(-noise_level, noise_level));
+        canonical_to_global(x, pEl->alpha, pEl->Xc, points[i]);
+        t += step;
+    }
+}
+
+float angle_to_0_2pi(float x)
+{
+    while (x < 0) 
+        x += 2 * M_PI;
+    while (x >= 2 * M_PI)
+        x -= 2 * M_PI;
+    return x;
+}
+
+int angles_cmp(float alpha, float beta)
+{
+    if (fabsf(alpha) < ANGLE_PREC)
+        alpha = 0;
+    if (fabsf(beta) < ANGLE_PREC)
+        beta = 0;
+    alpha   = angle_to_0_2pi(alpha);
+    beta    = angle_to_0_2pi(beta);
+    return fabsf(alpha - beta) < ANGLE_PREC;
+}
+
+int ellipse_cmp(struct ellipse *pSrc, struct ellipse *pRes)
+{
+    int i;
+    uint8_t aeqa, beqb; // src_param is equal res_param
+    uint8_t aeqb, beqa;
+    uint8_t srciscircle;
+    for (i = 0; i < 2; i++) {
+        if (pSrc->Xc[i] == 0) {
+            if (fabsf(pRes->Xc[i]) > FIT_REL_PREC)
+                return 0;
+        } else if (fabsf(1 - pRes->Xc[i] / pSrc->Xc[i]) > FIT_REL_PREC)
+            return 0;
+    }
+    
+    aeqa = fabsf(1.0f - pRes->a / pSrc->a) < FIT_REL_PREC;
+    beqb = fabsf(1.0f - pRes->b / pSrc->b) < FIT_REL_PREC;
+    srciscircle = fabsf(1.0f - pSrc->a / pSrc->b) < FIT_REL_PREC;
+    if (aeqa && beqb) {
+        if (!srciscircle)
+            return angles_cmp(pRes->alpha, pSrc->alpha) || 
+                angles_cmp(pRes->alpha, pSrc->alpha + M_PI);
+        return 1;
+    } else {
+        aeqb = fabsf(1.0f - pRes->b / pSrc->a) < FIT_REL_PREC;
+        beqb = fabsf(1.0f - pRes->a / pSrc->b) < FIT_REL_PREC;
+        if (aeqb && beqa) {
+            if (srciscircle)
+                return angles_cmp(pRes->alpha, pSrc->alpha + M_PI / 2.0f) || 
+                    angles_cmp(pRes->alpha, pSrc->alpha + 3.0f * M_PI / 2.0f);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int test_ellipse_fitting(int points_num, float a, float alpha, float noise_level)
+{
+    float **points;
+    struct ellipse init, src, res;
+ 
+    src.Xc[0] = 1.0;
+    src.Xc[1] = 1.0;
+    src.a = a;
+    src.b = 1.0;
+    src.alpha = alpha;
+    
+    if ( !(points = alloc_array2d(points_num, 2)) )
+        return 0;
+    
+    generate_points(points_num, &src, noise_level, points);
+    ellipse_fitting_init_guess(points, points_num, &init);
+    if (!ellipse_fitting(points, points_num, &init, &res)) {
+        free_array2d(points);
+        return 0;
+    }
+    
+    free_array2d(points);
+    return ellipse_cmp(&src, &res);
+}
+
+int testset_ellipse_fitting()
+{
+    int result = 1;
+    result &= test_ellipse_fitting(500, 1.5f, M_PI / 6.0f, 0);
     return result;
 }

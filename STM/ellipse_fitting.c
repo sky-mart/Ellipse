@@ -181,8 +181,8 @@ int dist_to_ellipse(float a, float b, float x[2], float *pd, float *pl)
             l = crealf(roots[i]);
             
 #define DIST_TO_ELLIPSE_EQ_PREC 1e-3f
-            if (fabsf(a*a + l > DIST_TO_ELLIPSE_EQ_PREC) && 
-                fabsf(b*b + l) > DIST_TO_ELLIPSE_EQ_PREC) 
+            if ((fabsf(a*a + l) > DIST_TO_ELLIPSE_EQ_PREC) && 
+                (fabsf(b*b + l) > DIST_TO_ELLIPSE_EQ_PREC)) 
             {
                 d = sqrtf(powf(x[0]*l/(a*a + l), 2) + powf(x[1]*l/(b*b + l), 2));
                 if (d < *pd) {
@@ -195,20 +195,23 @@ int dist_to_ellipse(float a, float b, float x[2], float *pd, float *pl)
     return 1;
 }
 
-#define MAX_ITER_COUNT              50
-#define MAX_ERROR_INCREASE_COUNT    4
-#define PARAMS_COUNT                5
-#define REL_PREC                    1e-5f
-
 void global_to_canonical(float X[2], float alpha, float Xc[2], float x[2])
 {
     float ca = cosf(alpha);
     float sa = sinf(alpha);
-    x[0] = ca * (X[0] - Xc[1]) + sa * (X[1] - Xc[1]);
+    x[0] = ca * (X[0] - Xc[0]) + sa * (X[1] - Xc[1]);
     x[1] = -sa * (X[0] - Xc[1]) + ca * (X[1] - Xc[1]);
 }
 
-void fill_jacobian( float *Ji, float x[2], float d, float l, float a, float b, float alpha)
+void canonical_to_global(float x[2], float alpha, float Xc[2], float X[2])
+{
+    float ca = cosf(alpha);
+    float sa = sinf(alpha);
+    X[0] = ca * x[0] + -sa * x[1] + Xc[0];
+    X[1] = sa * x[0] + ca * x[1] + Xc[1];
+}
+
+void fill_jacobian(float *Ji, float x[2], float d, float l, float a, float b, float alpha)
 {
     float dg_dl, dg_dx, dg_dy, dg_da, dg_db;
     float dl_dx, dl_dy, dl_da, dl_db;
@@ -226,11 +229,11 @@ void fill_jacobian( float *Ji, float x[2], float d, float l, float a, float b, f
     // auxiliary variables
     dg_dl = 4*l*l*l + 6*l*l * (a*a + b*a) + 
         2*l * (a*a*a*a + b*b*b*b + 4*a*a*b*b - a*a*x[0]*x[0] - b*b*x[1]*x[1]) + 
-        2*a*a*b*a * (a*a + b*a - x[0]*x[0] - x[1]*x[1]);
+        2*a*a*b*b * (a*a + b*b - x[0]*x[0] - x[1]*x[1]);
 
     dg_dx = -2*x[0]*a*a * powf(b*b + l, 2);
 
-    dg_dy = -2*x[1]*b*b * powf(a*b + l, 2);
+    dg_dy = -2*x[1]*b*b * powf(a*a + l, 2);
 
     dg_da = l*l*l * 4*a + l*l * 2*a * (2*a*a + 4*b*b - x[0]*x[0]) + 
         l * 4*a*b*b * (2*a*a + b*b - x[0]*x[0] - x[1]*x[1]) + 
@@ -421,7 +424,7 @@ int linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb)
     n = pA->numRows;
     pdata = pA->pData;
     
-    for (i = 0; i < pA->numRows; i++) {
+    for (i = 0; i < n; i++) {
         a[i] = &(pdata[i*n]);
     }
     
@@ -435,10 +438,10 @@ int linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb)
 // check potentially zero parameter
 uint8_t check_pot_zero_param(float value, float delta)
 {
-    if (fabsf(value) < REL_PREC) {  // == 0
-        return (abs(delta) < REL_PREC) ? 1 : 0;
+    if (fabsf(value) < FIT_REL_PREC) {  // == 0
+        return (abs(delta) < FIT_REL_PREC) ? 1 : 0;
     } else {
-        return (abs(delta/value) < REL_PREC) ? 1 : 0;
+        return (abs(delta/value) < FIT_REL_PREC) ? 1 : 0;
     }
 }
 
@@ -449,58 +452,71 @@ float norm(float *v, int n)
     return sqrtf(result);
 }
 
-int ellipse_fitting(float **points, int N, 
-                    float init_Xc[2], float init_a, float init_b, float init_alpha,
-                    float Xc[2], float *pa, float *pb, float *palpha)
+float dist(float *u, float *v, int n)
+{
+    float val;
+    float *d = (float *)malloc(n * sizeof(float));
+    
+    arm_sub_f32(u, v, d, n);
+    val = norm(d, n);
+    free(d);
+    return val;
+}
+
+int ellipse_fitting(float **points, int N, struct ellipse *pInit, struct ellipse *pRes)
 {
     int i;
     int iter_count = 1;
-    float a, b, alpha;
+    float Xc[2], a, b, alpha;
     float x[2], d, l;
+    uint8_t iscircle;
     
-    float *J_data, *Jt_data, *e_data;
-    float Js_data[PARAMS_COUNT * PARAMS_COUNT];
-    float es_data[PARAMS_COUNT];
-    arm_matrix_instance_f32 J, Jt, e, Js, es, da;
+    float J_data[MAX_POINTS_NUM * PARAMS_COUNT], Jt_data[MAX_POINTS_NUM * PARAMS_COUNT];
+    float e_data[MAX_POINTS_NUM];
+    float Js_data[PARAMS_COUNT * PARAMS_COUNT], es_data[PARAMS_COUNT];
+    
+    arm_matrix_instance_f32 J   = {N,               PARAMS_COUNT,   J_data};
+    arm_matrix_instance_f32 Jt  = {PARAMS_COUNT,    N,              Jt_data};
+    arm_matrix_instance_f32 e   = {N,               1,              e_data};
+    arm_matrix_instance_f32 Js  = {PARAMS_COUNT,    PARAMS_COUNT,   Js_data};
+    arm_matrix_instance_f32 es  = {PARAMS_COUNT,    1,              es_data};
     
     uint8_t Xc_ok[2], alpha_ok;
     uint8_t rel_prec_achieved;
     
-    Xc[0]   = init_Xc[0]; 
-    Xc[1]   = init_Xc[1];
-    a       = init_a;
-    b       = init_b;
-    alpha   = init_alpha;
-    
-    // alloc memory 
-    J_data  = (float *)malloc(N * PARAMS_COUNT * sizeof(float));
-    Jt_data = (float *)malloc(N * PARAMS_COUNT * sizeof(float));
-    e_data  = (float *)malloc(N * sizeof(float));
+    Xc[0]   = pInit->Xc[0]; 
+    Xc[1]   = pInit->Xc[1];
+    a       = pInit->a;
+    b       = pInit->b;
+    alpha   = pInit->alpha;
     
     while (iter_count <= MAX_ITER_COUNT) {
         for (i = 0; i < N; i++) {
             global_to_canonical(points[i], alpha, Xc, x);
+            if (i == 89) {
+                i = 89;
+            }
             if (!dist_to_ellipse(a, b, x, &d, &l)) {
                 return 0;
             }
             e_data[i] = -d;
             
+            iscircle = fabsf(1 - fabsf(a/b)) < FIT_REL_PREC;
             
-            if (fabsf(1 - fabsf(a/b)) < REL_PREC) {
+            if (iscircle) {
                 fill_jacobian(J_data + i*(PARAMS_COUNT-1), x, d, l, a, b, alpha);
-            } else {
+            } else {              
                 fill_jacobian(J_data + i*PARAMS_COUNT, x, d, l, a, b, alpha);
             }
         }
         
         // solve linear system J * da = e
         // to find ellipse parameters' changes
-        if (fabsf(1 - fabsf(a/b)) < REL_PREC) {
-            arm_mat_init_f32(&J, N, PARAMS_COUNT-1, J_data);
-            arm_mat_init_f32(&Jt, PARAMS_COUNT-1, N, Jt_data);
-            arm_mat_init_f32(&e, N, 1, e_data);
-            arm_mat_init_f32(&Js, PARAMS_COUNT-1, PARAMS_COUNT-1, Js_data);
-            arm_mat_init_f32(&es, PARAMS_COUNT-1, 1, es_data);
+        if (iscircle) {
+            J.numCols   = PARAMS_COUNT - 1;
+            Jt.numRows  = PARAMS_COUNT - 1;
+            Js.numRows  = PARAMS_COUNT - 1; Js.numCols = PARAMS_COUNT- 1;
+            es.numRows  = PARAMS_COUNT - 1;
 
             arm_mat_trans_f32(&J, &Jt);
             arm_mat_mult_f32(&Jt, &J, &Js);
@@ -510,11 +526,10 @@ int ellipse_fitting(float **points, int N,
                 return 0;
             }
         } else {
-            arm_mat_init_f32(&J, N, PARAMS_COUNT, J_data);
-            arm_mat_init_f32(&Jt, PARAMS_COUNT, N, Jt_data);
-            arm_mat_init_f32(&e, N, 1, e_data);
-            arm_mat_init_f32(&Js, PARAMS_COUNT, PARAMS_COUNT, Js_data);
-            arm_mat_init_f32(&es, PARAMS_COUNT, 1, es_data);
+            J.numCols   = PARAMS_COUNT;
+            Jt.numRows  = PARAMS_COUNT;
+            Js.numRows  = PARAMS_COUNT; Js.numCols = PARAMS_COUNT;
+            es.numRows  = PARAMS_COUNT;
 
             arm_mat_trans_f32(&J, &Jt);
             arm_mat_mult_f32(&Jt, &J, &Js);
@@ -525,7 +540,7 @@ int ellipse_fitting(float **points, int N,
             }
             alpha += es_data[4];
         }
-        // solution is in the vector ls
+        // solution is in the vector es
         Xc[0]   += es_data[0];
         Xc[1]   += es_data[1];
         a       += es_data[2];
@@ -537,22 +552,79 @@ int ellipse_fitting(float **points, int N,
         }
         
         alpha_ok = 0;
-        if (da.numRows < 5) 
+        if (es.numRows < 5) 
             alpha_ok = 1;
         else if (check_pot_zero_param(alpha, es_data[4]))
             alpha_ok = 1;
 
         rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok && 
-                            fabsf(es_data[2]/a) < REL_PREC && fabs(es_data[3]/b) < REL_PREC;
+                            fabsf(es_data[2]/a) < FIT_REL_PREC && fabs(es_data[3]/b) < FIT_REL_PREC;
         
-        if (rel_prec_achieved || norm(es_data, da.numRows) < powf(REL_PREC, 1.5)) {
-            *pa = a;
-            *pb = b;
-            *palpha = alpha;
+        if (rel_prec_achieved || norm(es_data, es.numRows) < powf(FIT_REL_PREC, 1.5)) {
+            pRes->Xc[0] = Xc[0];
+            pRes->Xc[1] = Xc[1];
+            pRes->a = a;
+            pRes->b = b;
+            pRes->alpha = alpha;
             return 1;
         }
         
         iter_count++;
     }
     return 0;
+}
+
+void mass_center(float **points, int N, float C[2], float *pR)
+{
+    int i;
+    float d[2];
+    
+    C[0] = C[1] = 0.0f;
+    for (i = 0; i < N; i++) {
+        C[0] += points[i][0];
+        C[1] += points[i][1];
+    }
+    C[0] /= N; C[1] /= N;
+    
+    *pR = 0;
+    for (i = 0; i < N; i++) {
+        arm_sub_f32(C, points[i], d, 2);
+        *pR += norm(d, 2);
+    }
+    *pR /= N;
+}
+
+/*
+* Initial guess for ellipse_fitting routine
+* Returns Xc, a, b, alpha in pointers
+*/
+void ellipse_fitting_init_guess(float **points, int N, struct ellipse *pInit)
+{
+    float R;
+    int closest, furthest, i;
+    float min_dist, max_dist, d;
+    mass_center(points, N, pInit->Xc, &R);
+
+    closest = furthest = 0;
+    min_dist = dist(points[closest], pInit->Xc, 2);
+    max_dist = dist(points[furthest], pInit->Xc, 2);
+
+    for (i = 1; i < N; i++) {
+        d = dist(points[i], pInit->Xc, 2);
+        if (d < min_dist) {
+            min_dist = d;
+            closest = i;
+        } else if (d > max_dist) {
+            max_dist = d;
+            furthest = i;
+        }
+    }
+
+    if (abs(points[furthest][0] - pInit->Xc[0]) < 1e-6) {
+        pInit->alpha = M_PI / 2;
+    } else {
+        pInit->alpha = atanf((points[furthest][1] - pInit->Xc[1])/(points[furthest][0] - pInit->Xc[0]));
+    }
+    pInit->a = max_dist;
+    pInit->b = min_dist;
 }
