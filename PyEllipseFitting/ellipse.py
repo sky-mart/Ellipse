@@ -74,7 +74,7 @@ def solve4(a, b, c, d, e):
     r = - 3*a*a*a*a/256 + a*a*b/16 - c*a/4 + d
 
     # obtain cubic resolvent A*s^3 + B*s^2 + C*s + D = 0
-    A = 2
+    A = 2.0
     B = -p
     C = -2*r
     D = r*p - q*q/4
@@ -88,8 +88,8 @@ def solve4(a, b, c, d, e):
     elif np.real(s3) > p/2:
         s = s3
 
-    a1 = 1; b1 = -np.sqrt(2*s-p); c1 = q/(2*np.sqrt(2*s-p)) + s
-    a2 = 1; b2 = np.sqrt(2*s-p); c2 = -q/(2*np.sqrt(2*s-p)) + s
+    a1 = np.float32(1); b1 = -np.sqrt(2*s-p); c1 = q/(2*np.sqrt(2*s-p)) + s
+    a2 = np.float32(1); b2 = np.sqrt(2*s-p); c2 = -q/(2*np.sqrt(2*s-p)) + s
 
     x1, x2 = solve2(a1, b1, c1)
     x1 -= a/4
@@ -220,7 +220,7 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
     MAX_ERROR_INCREASE_COUNT = 4
     iter_count = 1
     while iter_count <= MAX_ITER_COUNT:
-        canon_points = np.array([global_to_canonical(X, alpha, Xc) for X in points])
+        canon_points = np.array([global_to_canonical(X, alpha, Xc) for X in points], dtype=np.float32)
         dls = [dist_to_ellipse(a, b, x) for x in canon_points]
         e = np.array([-item[0] for item in dls], dtype=np.float32)  # penalty
 
@@ -241,7 +241,7 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
 
         # fill jacobian
         for i in xrange(N):
-            d, l = dls[i]
+            d, l = dist_to_ellipse(a, b, canon_points[i])  # dls[i]
             x, y = canon_points[i]
 
             if l == 0 and d == 0:
@@ -249,48 +249,48 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
                 continue
 
             # auxiliary variables
-            dg_dl = 4*l**3 + 6*l**2 * (a**2 + b**2) + \
+            dg_dl = np.float32(4*l**3 + 6*l**2 * (a**2 + b**2) + \
                 2*l * (a**4 + b**4 + 4*a**2*b**2 - a**2*x**2 - b**2*y**2) + \
-                2*a**2*b**2 * (a**2 + b**2 - x**2 - y**2)
+                2*a**2*b**2 * (a**2 + b**2 - x**2 - y**2))
 
-            dg_dx = -2*x*a**2 * (b**2 + l)**2
+            dg_dx = np.float32(-2*x*a**2 * (b**2 + l)**2)
 
-            dg_dy = -2*y*b**2 * (a**2 + l)**2
+            dg_dy = np.float32(-2*y*b**2 * (a**2 + l)**2)
 
-            dg_da = l**3 * 4*a + l**2 * 2*a * (2*a**2 + 4*b**2 - x**2) + \
+            dg_da = np.float32(l**3 * 4*a + l**2 * 2*a * (2*a**2 + 4*b**2 - x**2) + \
                 l * 4*a*b**2 * (2*a**2 + b**2 - x**2 - y**2) + \
-                2*a*b**2 * (2*a**2*b**2 - b**2*x**2 - 2*a**2*y**2)
+                2*a*b**2 * (2*a**2*b**2 - b**2*x**2 - 2*a**2*y**2))
 
-            dg_db = l**3 * 4*b + l**2 * 2*b * (2*b**2 + 4*a**2 - y**2) + \
+            dg_db = np.float32(l**3 * 4*b + l**2 * 2*b * (2*b**2 + 4*a**2 - y**2) + \
                 l * 4*a**2*b * (a**2 + 2*b**2 - x**2 - y**2) + \
-                2*a**2*b * (2*a**2*b**2 - 2*b**2*x**2 - a**2*y**2)
+                2*a**2*b * (2*a**2*b**2 - 2*b**2*x**2 - a**2*y**2))
 
-            dl_dx = - dg_dx / dg_dl
-            dl_dy = - dg_dy / dg_dl
+            dl_dx = np.float32(- dg_dx / dg_dl)
+            dl_dy = np.float32(- dg_dy / dg_dl)
             dl_da = - dg_da / dg_dl
             dl_db = - dg_db / dg_dl
 
-            dx_dXc = -cos(alpha)
-            dx_dYc = -sin(alpha)
-            dx_dalpha = y
-            dx_da = 0
-            dx_db = 0
+            dx_dXc = np.float32(-cos(alpha))
+            dx_dYc = np.float32(-sin(alpha))
+            dx_dalpha = np.float32(y)
+            dx_da = np.float32(0)
+            dx_db = np.float32(0)
 
-            dy_dXc = sin(alpha)
-            dy_dYc = -cos(alpha)
-            dy_dalpha = -x
-            dy_da = 0
-            dy_db = 0
+            dy_dXc = np.float32(sin(alpha))
+            dy_dYc = np.float32(-cos(alpha))
+            dy_dalpha = np.float32(-x)
+            dy_da = np.float32(0)
+            dy_db = np.float32(0)
 
-            dl_dXc = dl_dx * dx_dXc + dl_dy * dy_dXc
-            dl_dYc = dl_dx * dx_dYc + dl_dy * dy_dYc
-            dl_dalpha = dl_dx * dx_dalpha + dl_dy * dy_dalpha
+            dl_dXc = np.float32(dl_dx * dx_dXc + dl_dy * dy_dXc)
+            dl_dYc = np.float32(dl_dx * dx_dYc + dl_dy * dy_dYc)
+            dl_dalpha = np.float32(dl_dx * dx_dalpha + dl_dy * dy_dalpha)
 
-            da2_dXc = 0
-            da2_dYc = 0
-            da2_da = 2*a
-            da2_db = 0
-            da2_dalpha = 0
+            da2_dXc = np.float32(0)
+            da2_dYc = np.float32(0)
+            da2_da = np.float32(2*a)
+            da2_db = np.float32(0)
+            da2_dalpha = np.float32(0)
 
             db2_dXc = 0
             db2_dYc = 0
@@ -298,35 +298,35 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
             db2_db = 2*b
             db2_dalpha = 0
 
-            dd_dXc = (l/d) * (
+            dd_dXc = np.float32((l/d) * (
                 x / (a**2 + l)**3 * (a**2*x * dl_dXc + l*(a**2 + l) * dx_dXc - l*x * da2_dXc)
                 +
                 y / (b**2 + l)**3 * (b**2*y * dl_dXc + l*(b**2 + l) * dy_dXc - l*y * db2_dXc)
-            )
+            ))
 
-            dd_dYc = (l/d) * (
+            dd_dYc = np.float32((l/d) * (
                 x / (a**2 + l)**3 * (a**2*x * dl_dYc + l*(a**2 + l) * dx_dYc - l*x * da2_dYc)
                 +
                 y / (b**2 + l)**3 * (b**2*y * dl_dYc + l*(b**2 + l) * dy_dYc - l*y * db2_dYc)
-            )
+            ))
 
-            dd_da = (l/d) * (
+            dd_da = np.float32((l/d) * (
                 x / (a**2 + l)**3 * (a**2*x * dl_da + l*(a**2 + l) * dx_da - l*x * da2_da)
                 +
                 y / (b**2 + l)**3 * (b**2*y * dl_da + l*(b**2 + l) * dy_da - l*y * db2_da)
-            )
+            ))
 
-            dd_db = (l/d) * (
+            dd_db = np.float32((l/d) * (
                 x / (a**2 + l)**3 * (a**2*x * dl_db + l*(a**2 + l) * dx_db - l*x * da2_db)
                 +
                 y / (b**2 + l)**3 * (b**2*y * dl_db + l*(b**2 + l) * dy_db - l*y * db2_db)
-            )
+            ))
 
-            dd_dalpha = (l/d) * (
+            dd_dalpha = np.float32((l/d) * (
                 x / (a**2 + l)**3 * (a**2*x * dl_dalpha + l*(a**2 + l) * dx_dalpha - l*x * da2_dalpha)
                 +
                 y / (b**2 + l)**3 * (b**2*y * dl_dalpha + l*(b**2 + l) * dy_dalpha - l*y * db2_dalpha)
-            )
+            ))
 
             J[i] = np.array([
                 dd_dXc,
@@ -334,7 +334,7 @@ def ellipse_fitting(points, init, rel_prec=1e-6):
                 dd_da,
                 dd_db,
                 dd_dalpha
-            ])
+            ], dtype=np.float32)
 
         # solve linear system J * da = e
         # to find ellipse parameters' changes
@@ -562,59 +562,8 @@ def linsolve(A, b):
 
 
 if __name__ == '__main__':
-    l = np.array([[1.0, 0.0, 0.0],
-                  [1.0/7.0, 1.0, 0.0],
-                  [0.0, 1.5, 1.0]])
-    u = np.array([[7.0, 0.0, 2.0],
-                  [0, 2.0, 33.0/7.0],
-                  [0, 0, 13.5]])
-
-    A = np.array([[1.0, 2.0, 5.0],
-                  [0.0, 3.0, 21.0],
-                  [7.0, 0.0, 2.0]])
-    # print ludcmp(A)
-    A_src = np.copy(A)
-    #
-    # N = A.shape[0]
-    # LU, indx = ludcmp(A)
-
-    # for i in xrange(N):
-    #     for j in xrange(N):
-    #         temp = A_src[i, j]
-    #         A_src[i, j] = A_src[indx[i], j]
-    #         A_src[indx[i], j] = temp
-    #
-    #
-    # L = np.zeros((N, N))
-    # U = np.zeros((N, N))
-    # for i in xrange(N):
-    #     L[i, i] = 1.0
-    #     for j in xrange(i):
-    #         L[i, j] = A[i, j]
-    #     for j in xrange(i, N):
-    #         U[i, j] = A[i, j]
-    #
-    # print LU
-    # print L
-    # print U
-    # print np.dot(L, U)
-    # print np.dot(L, U) - A_src
-
-
-    b = np.array([3.0, 1.0, 2.5])
-    b_src = np.copy(b)
-
-    # for i in xrange(N):
-    #     temp = b_src[i]
-    #     b_src[i] = b_src[indx[i]]
-    #     b_src[indx[i]] = temp
-
-    # lubksb(A, b, indx)
-    # print b
-    print np.dot(A_src, linsolve(A, b)) - b_src
-
-    # points = generate_points(500, [1.0, 1.0], 1.5, 1.0, 3.0543261909900767, noise_level=0.2)
-    # init = ellipse_fitting_init_guess(points)
-    # print ellipse_fitting(points, init)
+    points = generate_points(500, [1.0, 1.0], 1.5, 1.0, np.pi/6)
+    init = ellipse_fitting_init_guess(points)
+    print ellipse_fitting(points, init)
 
 

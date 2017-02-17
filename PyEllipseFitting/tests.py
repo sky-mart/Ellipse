@@ -67,7 +67,16 @@ class TestEllipse(unittest.TestCase):
     @parameterized.expand([
         ('lil', np.array([[1.0, 2.0, 5.0], [0.0, 3.0, 21.0], [7.0, 0.0, 2.0]])),
         ('3x3', np.random.rand(3, 3)),
+        ('4my', np.array([[-1.0, 2.0, 15.0, 2.5],
+                          [3.0, 4.0, -21.0, -1.3],
+                          [-7.0, 0.0, 1.0, 0.0],
+                          [-2.0, 3.0, 5.0, 4.0]])),
         ('4x4', np.random.rand(4, 4)),
+        ('5my', np.array([[1.5, 2.0, -0.4, 2.5, 8.8],
+                  [3.0, 4.0, -21.0, 100.0, 0.1],
+                  [-7.1, 0.9, 1.0, 0.0, 1.0],
+                  [-2.2, 3.0, 5.5, 4.7, 72.0],
+                  [0.3, 3.8, 7.4, 4.7, -26.0]])),
         ('5x5', np.random.rand(5, 5)),
     ])
     def test_ludcmp(self, name, A):
@@ -194,26 +203,26 @@ class TestEllipse(unittest.TestCase):
     #     params = ellipse_fitting(points, rel_prec)
     #     self.compare_ellipse_params(src_params, params, rel_prec)
 
-    @parameterized.expand(cartesian((
-        np.linspace(500, 501, 1),
-        np.linspace(1.0, 3.0, 4),
-        np.linspace(-np.pi+np.pi/36, np.pi-np.pi/36, 4),
-        np.linspace(0.2, 0.3, 4)))
-    )
-    def test_ellipse_fitting_noisy(self, points_num, a, alpha, noise_level):
-        rel_prec = 3e-1
-        Xc = 1.0
-        Yc = 1.0
-        b = 1.0
-
-        src_params = [Xc, Yc, a, b, alpha]
-        points = generate_points(int(points_num), [Xc, Yc], a, b, alpha, noise_level)
-        init = ellipse_fitting_init_guess(points)
-        params = ellipse_fitting(points, init)
-        if params == [-1, -1, -1, -1, -1]:
-            self.assertTrue(False, msg='rashod: ' + "src_params: " + str(src_params))
-        else:
-            self.compare_ellipse_params(src_params, params, rel_prec)
+    # @parameterized.expand(cartesian((
+    #     np.linspace(500, 501, 1),
+    #     np.linspace(1.0, 3.0, 4),
+    #     np.linspace(-np.pi+np.pi/36, np.pi-np.pi/36, 4),
+    #     np.linspace(0.2, 0.3, 4)))
+    # )
+    # def test_ellipse_fitting_noisy(self, points_num, a, alpha, noise_level):
+    #     rel_prec = 3e-1
+    #     Xc = 1.0
+    #     Yc = 1.0
+    #     b = 1.0
+    #
+    #     src_params = [Xc, Yc, a, b, alpha]
+    #     points = generate_points(int(points_num), [Xc, Yc], a, b, alpha, noise_level)
+    #     init = ellipse_fitting_init_guess(points)
+    #     params = ellipse_fitting(points, init)
+    #     if params == [-1, -1, -1, -1, -1]:
+    #         self.assertTrue(False, msg='rashod: ' + "src_params: " + str(src_params))
+    #     else:
+    #         self.compare_ellipse_params(src_params, params, rel_prec)
 
     def compare_ellipse_params(self, src_params, params, rel_prec):
         msg = "src_params: " + str(src_params) + "\nparams: " + str(params)
