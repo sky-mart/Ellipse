@@ -52,7 +52,7 @@ int solve3(float a, float b, float c, float d, complexf roots[3])
 {
     float p, q, Q;
     complexf alpha, beta;
-    // float rp[5], ip[5]; // debug
+    float rp[5], ip[5]; // debug
     
     // reduce to the form y^3 + py + q = 0
     // substitution: x = y - b/3a
@@ -69,22 +69,22 @@ int solve3(float a, float b, float c, float d, complexf roots[3])
         //alpha   = mypowf(-q/2 + sqrtf(Q), 1.0/3);
         //beta    = mypowf(-q/2 - sqrtf(Q), 1.0/3);
         alpha   = cbrtf(-q/2 + sqrtf(Q));
-        beta    = cbrtf(-q/2 - sqrtf(Q));
+        beta    = cbrtf(-q/2 - sqrtf(Q));+
     } else {
         alpha   = cpowf(-q/2 + sqrtf(-Q) * I, 1.0/3);
         beta    = cpowf(-q/2 - sqrtf(-Q) * I, 1.0/3);
     }
     
-//    cparts(alpha, &rp[0], &ip[0]);
-//    cparts(beta, &rp[1], &ip[1]);
+    cparts(alpha, &rp[0], &ip[0]);
+    cparts(beta, &rp[1], &ip[1]);
 
     roots[0] = alpha + beta - b/(3*a);
     roots[1] = -(alpha+beta)/2 - b/(3*a) + (alpha-beta)*sqrtf(3)/2 * I;
     roots[2] = -(alpha+beta)/2 - b/(3*a) - (alpha-beta)*sqrtf(3)/2 * I;
     
-//    cparts(roots[0], &rp[2], &ip[2]);
-//    cparts(roots[1], &rp[3], &ip[3]);
-//    cparts(roots[2], &rp[4], &ip[4]);
+    cparts(roots[0], &rp[2], &ip[2]);
+    cparts(roots[1], &rp[3], &ip[3]);
+    cparts(roots[2], &rp[4], &ip[4]);
     
     return 1;
 }
@@ -101,7 +101,7 @@ int solve4(float a, float b, float c, float d, float e, complexf roots[4])
     complexf cube[3];
     float a1, b1, c1, a2, b2, c2;
     int i;
-    // float rp[3], ip[3]; // debug
+    //float rp[3], ip[3]; // debug
     
     b /= a; c /= a; d /= a; e /= a;
     a = b; b = c; c = d; d = e;
