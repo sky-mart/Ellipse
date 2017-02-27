@@ -37,7 +37,8 @@ def mypow(x, p):
 
 # solve equation ax^3 + bx^2 + cx + d = 0
 def solve3(a, b, c, d):
-    a = float(a); b = float(b); c = float(c); d = float(d)
+    a = np.float32(a); b = np.float32(b); c = np.float32(c); d = np.float32(d)
+    a = np.float64(a); b = np.float64(b); c = np.float64(c); d = np.float64(d)
     # reduce to the form y^3 + py + q = 0
     # substitution: x = y - b/3a
     p = c/a - b*b/(3*a*a)
@@ -64,7 +65,8 @@ def solve3(a, b, c, d):
 
 # solve equation ax^4 + bx^3 + cx^2 + dx + e = 0
 def solve4(a, b, c, d, e):
-    a = float(a); b = float(b); c = float(c); d = float(d); e = float(e)
+    a = np.float32(a); b = np.float32(b); c = np.float32(c); d = np.float32(d); e = np.float32(e)
+    a = np.float64(a); b = np.float64(b); c = np.float64(c); d = np.float64(d); e = np.float64(e)
     b /= a; c /= a; d /= a; e /= a;
     a = b; b = c; c = d; d = e;
 
