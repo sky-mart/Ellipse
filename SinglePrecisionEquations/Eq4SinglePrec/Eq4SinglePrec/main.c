@@ -89,18 +89,26 @@ int main()
     if (!testset_solve()) {
         i = 21;
         printf("testset_solve: failed\n");
+    } else {
+        printf("testset_solve: passed\n");
     }
     if (!testset_dist_to_ellipse()) {
         i = 21;
         printf("testset_dist_to_ellipse: failed\n");
+    } else {
+        printf("testset_dist_to_ellipse: passed\n");
     }
     if (!testset_linsolve()) {
         i = 21;
         printf("testset_linsolve: failed\n");
+    } else {
+        printf("testset_linsolve: passed\n");
     }
     if (!testset_ellipse_fitting()) {
         i = 21;
         printf("testset_ellipse_fitting: failed\n");
+    } else {
+        printf("testset_ellipse_fitting: passed\n");
     }
     
     while (1) {}

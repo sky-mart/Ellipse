@@ -14,6 +14,7 @@
 
 //#define SINGLE_PREC_DEBUG
 //#define SINGLE_PREC
+#define MAT_SINGLE_PREC
 
 #ifdef SINGLE_PREC
     typedef float real;
@@ -31,6 +32,9 @@
     #define cosr    cosf
     #define cabsr   cabsf
     #define hypotr  hypotf
+    #define normr   normf
+    #define alloc_array2dr  alloc_array2df
+    #define free_array2dr   free_array2df
 #else
     typedef double real;
     typedef double complex complexr;
@@ -47,6 +51,27 @@
     #define cosr    cos
     #define cabsr   cabs
     #define hypotr  hypot
+    #define normr   norm
+    #define alloc_array2dr  alloc_array2d
+    #define free_array2dr   free_array2d
+#endif
+
+#ifdef MAT_SINGLE_PREC
+    typedef float mreal;
+    #define dotprodm        mdotprodf
+    #define normm           normf
+    #define vmaxm           vec_maxf
+    #define alloc_array2dm  alloc_array2df
+    #define free_array2dm   free_array2df
+#define fabsm   fabsf
+#else
+    typedef double mreal;
+    #define dotprodm        mdotprod
+    #define normm           norm
+    #define vmaxm           vec_max
+    #define alloc_array2dm  alloc_array2d
+    #define free_array2dm   free_array2d
+#define fabsm   fabs
 #endif
 
 // for possible arm_math implementation
@@ -54,14 +79,12 @@ typedef struct
 {
     uint16_t numRows;
     uint16_t numCols;
-    real *pData;
+    mreal *pData;
 } mat;
 
 typedef mat matrix;
 
-#define dotprod     dotprodr
 #define vsub        vec_sub
-#define vmax        vec_max
 #define mtrans      mat_trans
 #define mmult       mat_mult
 #define minit       mat_init

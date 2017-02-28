@@ -22,13 +22,13 @@
 #define ANGLE_PREC      1e-3f
 
 
-real **alloc_array2d(size_t nRows, size_t nCols)
+float **alloc_array2df(size_t nRows, size_t nCols)
 {
-    real *t1, **t2;
+    float *t1, **t2;
     int i;
-    if ( !(t1 = (real *)malloc(nRows * nCols * sizeof(real))) )
+    if ( !(t1 = (float *)malloc(nRows * nCols * sizeof(float))) )
         return NULL;
-    if ( !(t2 = (real **)malloc(nRows * sizeof(real *))) ) {
+    if ( !(t2 = (float **)malloc(nRows * sizeof(float *))) ) {
         free(t1);
         return NULL;
     }
@@ -38,7 +38,29 @@ real **alloc_array2d(size_t nRows, size_t nCols)
     return t2;
 }
 
-void free_array2d(real **a)
+double **alloc_array2d(size_t nRows, size_t nCols)
+{
+    double *t1, **t2;
+    int i;
+    if ( !(t1 = (double *)malloc(nRows * nCols * sizeof(double))) )
+        return NULL;
+    if ( !(t2 = (double **)malloc(nRows * sizeof(double *))) ) {
+        free(t1);
+        return NULL;
+    }
+    for (i = 0; i < nRows; i++) {
+        t2[i] = &t1[i * nCols];
+    }
+    return t2;
+}
+
+void free_array2df(float **a)
+{
+    free(a[0]);
+    free(a);
+}
+
+void free_array2d(double **a)
 {
     free(a[0]);
     free(a);
@@ -165,12 +187,12 @@ int testset_dist_to_ellipse()
     return result;
 }
 
-int test_ludcmp(real **a, int n)
+int test_ludcmp(mreal **a, int n)
 {
-    real A_data[MAX_DCMP_N*MAX_DCMP_N];
-    real L_data[MAX_DCMP_N*MAX_DCMP_N];
-    real U_data[MAX_DCMP_N*MAX_DCMP_N];
-    real LxU_data[MAX_DCMP_N*MAX_DCMP_N], dum;
+    mreal A_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal L_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal U_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal LxU_data[MAX_DCMP_N*MAX_DCMP_N], dum;
     matrix A, L, U, LxU;
     int i, j, indx[MAX_DCMP_N];
     uint32_t ii;
@@ -188,8 +210,8 @@ int test_ludcmp(real **a, int n)
         return 0;
     }
     
-    memset(L_data, 0, n * n * sizeof(real));
-    memset(U_data, 0, n * n * sizeof(real));
+    memset(L_data, 0, n * n * sizeof(mreal));
+    memset(U_data, 0, n * n * sizeof(mreal));
     for (i = 0; i < n; i++) {
         L_data[i*n + i] = 1.0f;
         for (j = 0; j < i; j++)
@@ -208,7 +230,7 @@ int test_ludcmp(real **a, int n)
     
     mmult(&L, &U, &LxU);
     msub(&LxU, &A, &L);
-    vmax(L_data, n * n, &dum, &ii);
+    vmaxm(L_data, n * n, &dum, &ii);
     
     return fabsr(dum) < MAT_PREC;
 }
@@ -216,9 +238,9 @@ int test_ludcmp(real **a, int n)
 int testset_ludcmp()
 {
     int result = 1;
-    real **a;
+    mreal **a;
     
-    if ( !(a = alloc_array2d(5, 5)) ) {
+    if ( !(a = alloc_array2dm(5, 5)) ) {
         return 0;
     }
     a[0][0] = 1.0f;     a[0][1] = 2.0f;     a[0][2] = 5.0f;
@@ -239,17 +261,17 @@ int testset_ludcmp()
     a[4][0] = 0.3f;     a[4][1] = 3.8f;     a[4][2] = 7.4f;     a[4][3] = 4.7f;     a[4][4] = -26.0f;
     result &= test_ludcmp(a, 5);
     
-    free_array2d(a);
+    free_array2dm(a);
     return result;
 }
 
 int test_linsolve(matrix *pA, matrix *pb)
 {
-    real A_src_data[MAX_DCMP_N*MAX_DCMP_N];
-    real b_src_data[MAX_DCMP_N], b_acq_data[MAX_DCMP_N];
+    mreal A_src_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal b_src_data[MAX_DCMP_N], b_acq_data[MAX_DCMP_N];
     matrix A_src, b_src, b_acq;
     int i, n;
-    real dum, big;
+    mreal dum, big;
     
     n = pA->numRows;
     
@@ -281,8 +303,8 @@ int test_linsolve(matrix *pA, matrix *pb)
 
 int testset_linsolve()
 {
-    real A_data[MAX_DCMP_N*MAX_DCMP_N];
-    real b_data[MAX_DCMP_N];
+    mreal A_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal b_data[MAX_DCMP_N];
     matrix A, b;
     int n = 3;
     int result = 1;
@@ -388,17 +410,17 @@ int test_ellipse_fitting(int points_num, real a, real alpha, real noise_level)
     src.b = 1.0;
     src.alpha = alpha;
     
-    if ( !(points = alloc_array2d(points_num, 2)) )
+    if ( !(points = alloc_array2dr(points_num, 2)) )
         return 0;
     
     generate_points(points_num, &src, noise_level, points);
     ellipse_fitting_init_guess(points, points_num, &init);
     if (!ellipse_fitting(points, points_num, &init, &res)) {
-        free_array2d(points);
+        free_array2dr(points);
         return 0;
     }
     
-    free_array2d(points);
+    free_array2dr(points);
     return ellipse_cmp(&src, &res);
 }
 

@@ -22,7 +22,7 @@ int testset_solve(void);
 int test_dist_to_ellipse(real a, real b, real x[2], real trued);
 int testset_dist_to_ellipse(void);
 
-int test_ludcmp(real **a, int n);
+int test_ludcmp(mreal **a, int n);
 int testset_ludcmp(void);
 int test_linsolve(matrix *pA, matrix *pb);
 int testset_linsolve(void);

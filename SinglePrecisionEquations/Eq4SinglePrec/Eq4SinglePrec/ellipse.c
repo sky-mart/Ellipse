@@ -123,7 +123,7 @@ void mass_center(real **points, int N, real C[2], real *pR)
     *pR = 0;
     for (i = 0; i < N; i++) {
         vsub(C, points[i], d, 2);
-        *pR += norm(d, 2);
+        *pR += normr(d, 2);
     }
     *pR /= N;
 }
@@ -136,9 +136,9 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
     real x[2], d, l;
     uint8_t iscircle = 0;
     
-    real J_data[MAX_POINTS_NUM * PARAMS_COUNT], Jt_data[MAX_POINTS_NUM * PARAMS_COUNT];
-    real e_data[MAX_POINTS_NUM];
-    real Js_data[PARAMS_COUNT * PARAMS_COUNT], es_data[PARAMS_COUNT];
+    mreal J_data[MAX_POINTS_NUM * PARAMS_COUNT], Jt_data[MAX_POINTS_NUM * PARAMS_COUNT];
+    mreal e_data[MAX_POINTS_NUM];
+    mreal Js_data[PARAMS_COUNT * PARAMS_COUNT], es_data[PARAMS_COUNT];
     
     matrix J   = {N,               PARAMS_COUNT,   J_data};
     matrix Jt  = {PARAMS_COUNT,    N,              Jt_data};
@@ -225,7 +225,7 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
         rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok &&
         fabsr(es_data[2]/a) < FIT_REL_PREC && fabsr(es_data[3]/b) < FIT_REL_PREC;
         
-        if (rel_prec_achieved || norm(es_data, es.numRows) < powr(FIT_REL_PREC, 1.5)) {
+        if (rel_prec_achieved || normm(es_data, es.numRows) < powr(FIT_REL_PREC, 1.5)) {
             pRes->Xc[0] = Xc[0];
             pRes->Xc[1] = Xc[1];
             pRes->a = a;
@@ -239,7 +239,7 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
     return 0;
 }
 
-void fill_jacobian(real *Ji, real x[2], real d, real l, real a, real b, real alpha)
+void fill_jacobian(mreal *Ji, real x[2], real d, real l, real a, real b, real alpha)
 {
     real dg_dl, dg_dx, dg_dy, dg_da, dg_db;
     real dl_dx, dl_dy, dl_da, dl_db;

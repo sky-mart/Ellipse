@@ -26,7 +26,16 @@ void cprint(complexr z)
 //    return (b >= 0) ? powr(b, e) : -powr(-b, e);
 //}
 
-void dotprodr(real *a, real *b, uint n, real *pResult)
+void dotprodf(float *a, float *b, uint n, float *pResult)
+{
+    uint i;
+    *pResult = 0;
+    for (i = 0; i < n; i++) {
+        *pResult += a[i] * b[i];
+    }
+}
+
+void dotprod(double *a, double *b, uint n, double *pResult)
 {
     uint i;
     *pResult = 0;
@@ -43,10 +52,10 @@ void vec_sub(real *a, real *b, real *d, uint n)
     }
 }
 
-void vec_max(real *v, uint n, real *pResult, uint *pIndex)
+void vec_maxf(float *v, uint n, float *pResult, uint *pIndex)
 {
     uint i, bigIndex = 0;
-    real big = v[0];
+    float big = v[0];
     for (i = 1; i < n; i++) {
         if (v[i] > big) {
             bigIndex = i;
@@ -57,11 +66,32 @@ void vec_max(real *v, uint n, real *pResult, uint *pIndex)
     *pIndex = bigIndex;
 }
 
-real norm(real *v, uint n)
+void vec_max(double *v, uint n, double *pResult, uint *pIndex)
 {
-    real result;
+    uint i, bigIndex = 0;
+    double big = v[0];
+    for (i = 1; i < n; i++) {
+        if (v[i] > big) {
+            bigIndex = i;
+            big = v[i];
+        }
+    }
+    *pResult = big;
+    *pIndex = bigIndex;
+}
+
+float normf(float *v, uint n)
+{
+    float result;
+    dotprodf(v, v, n, &result);
+    return sqrtf(result);
+}
+
+double norm(double *v, uint n)
+{
+    double result;
     dotprod(v, v, n, &result);
-    return sqrtr(result);
+    return sqrt(result);
 }
 
 real dist(real *u, real *v, int n)
@@ -70,12 +100,12 @@ real dist(real *u, real *v, int n)
     real *d = (real *)malloc(n * sizeof(real));
     
     vsub(u, v, d, n);
-    val = norm(d, n);
+    val = normr(d, n);
     free(d);
     return val;
 }
 
-void mat_init(matrix *pA, uint16_t nRows, uint16_t nCols, real *pData)
+void mat_init(matrix *pA, uint16_t nRows, uint16_t nCols, mreal *pData)
 {
     pA->numRows = nRows;
     pA->numCols = nCols;
@@ -108,7 +138,7 @@ int mat_sub(matrix *pA, matrix *pB, matrix *pC)
 int mat_mult(matrix *pA, matrix *pB, matrix *pC)
 {
     int i, j, k;
-    real tmp;
+    mreal tmp;
     for (i = 0; i < pC->numRows; i++) {
         for (j = 0; j < pC->numCols; j++) {
             tmp = 0;
@@ -127,22 +157,22 @@ int mat_mult(matrix *pA, matrix *pB, matrix *pC)
  * indx - row perturbations array
  * Return 1 on success, 0 if the matrix is singular
  */
-int ludcmp(real **a, int n, int *indx)
+int ludcmp(mreal **a, int n, int *indx)
 {
     int i, imax = 0, j, k;
-    real big, dum, sum, temp;
-    real vv[MAX_DCMP_N];
+    mreal big, dum, sum, temp;
+    mreal vv[MAX_DCMP_N];
     
     // calculate the biggest elements in every row
     for (i = 0; i < n; i++) {
-        big = 0.0f;
+        big = 0.0;
         for (j = 0; j < n; j++) {
-            if ((temp = fabsr(a[i][j])) > big)
+            if ((temp = fabsm(a[i][j])) > big)
                 big = temp;
         }
-        if (big == 0.0f)
+        if (big == 0.0)
             return 0; // Singular matrix in routine ludcmp
-        vv[i] = (1.0f / big);
+        vv[i] = (1.0 / big);
     }
     
     for (j = 0; j < n; j++) {
@@ -154,7 +184,7 @@ int ludcmp(real **a, int n, int *indx)
             a[i][j] = sum;
         }
         // calculate elements of L
-        big = 0.0f;
+        big = 0.0;
         for (i = j; i < n; i++) {
             sum = a[i][j];
             for (k = 0; k < j; k++)
@@ -162,7 +192,7 @@ int ludcmp(real **a, int n, int *indx)
             a[i][j] = sum;
             
             // find the row with the biggest jth element
-            if ((dum = vv[i] * fabsr(sum)) >= big) {
+            if ((dum = vv[i] * fabsm(sum)) >= big) {
                 big = dum;
                 imax = i;
             }
@@ -180,7 +210,7 @@ int ludcmp(real **a, int n, int *indx)
         indx[j] = imax;
         
         // carry out division by the revealed biggest jj-th element
-        dum = 1.0f / a[j][j];
+        dum = 1.0 / a[j][j];
         for (i = j + 1; i < n; i++)
             a[i][j] *= dum;
     }
@@ -194,10 +224,10 @@ int ludcmp(real **a, int n, int *indx)
  * indx  - vector of row perturbations returned by ludcmp
  * b     - right side vector and solution is returned in it
  */
-void lubksb(real **a, int n, real *b, int *indx)
+void lubksb(mreal **a, int n, mreal *b, int *indx)
 {
     int i, ii = -1, ip, j;
-    real sum;
+    mreal sum;
     
     for (i = 0; i < n; i++) {
         ip = indx[i];
@@ -226,7 +256,7 @@ void lubksb(real **a, int n, real *b, int *indx)
  */
 int linsolve(matrix *pA, matrix *pb)
 {
-    real *a[MAX_DCMP_N], *pdata;
+    mreal *a[MAX_DCMP_N], *pdata;
     int i, n, indx[MAX_DCMP_N];
     
     n = pA->numRows;
