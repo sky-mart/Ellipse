@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		F5BEF1EB1E647C37004BE878 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF1EA1E647C37004BE878 /* main.c */; };
-		F5BEF1F91E65F047004BE878 /* ellipse_fitting.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF1F71E65F047004BE878 /* ellipse_fitting.c */; };
 		F5BEF1FC1E65F2E9004BE878 /* ellipse_fitting_tests.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF1FA1E65F2E9004BE878 /* ellipse_fitting_tests.c */; };
+		F5BEF2001E66084F004BE878 /* equations.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF1FE1E66084F004BE878 /* equations.c */; };
+		F5BEF2031E66085F004BE878 /* ellipse.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF2011E66085F004BE878 /* ellipse.c */; };
+		F5BEF2061E6608BE004BE878 /* extra_math.c in Sources */ = {isa = PBXBuildFile; fileRef = F5BEF2041E6608BE004BE878 /* extra_math.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,10 +29,15 @@
 /* Begin PBXFileReference section */
 		F5BEF1E71E647C37004BE878 /* Eq4SinglePrec */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Eq4SinglePrec; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5BEF1EA1E647C37004BE878 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		F5BEF1F71E65F047004BE878 /* ellipse_fitting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ellipse_fitting.c; sourceTree = "<group>"; };
-		F5BEF1F81E65F047004BE878 /* ellipse_fitting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ellipse_fitting.h; sourceTree = "<group>"; };
 		F5BEF1FA1E65F2E9004BE878 /* ellipse_fitting_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ellipse_fitting_tests.c; sourceTree = "<group>"; };
 		F5BEF1FB1E65F2E9004BE878 /* ellipse_fitting_tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ellipse_fitting_tests.h; sourceTree = "<group>"; };
+		F5BEF1FD1E660840004BE878 /* settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = settings.h; sourceTree = "<group>"; };
+		F5BEF1FE1E66084F004BE878 /* equations.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = equations.c; sourceTree = "<group>"; };
+		F5BEF1FF1E66084F004BE878 /* equations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = equations.h; sourceTree = "<group>"; };
+		F5BEF2011E66085F004BE878 /* ellipse.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ellipse.c; sourceTree = "<group>"; };
+		F5BEF2021E66085F004BE878 /* ellipse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ellipse.h; sourceTree = "<group>"; };
+		F5BEF2041E6608BE004BE878 /* extra_math.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = extra_math.c; sourceTree = "<group>"; };
+		F5BEF2051E6608BE004BE878 /* extra_math.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = extra_math.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,10 +71,15 @@
 			isa = PBXGroup;
 			children = (
 				F5BEF1EA1E647C37004BE878 /* main.c */,
-				F5BEF1F71E65F047004BE878 /* ellipse_fitting.c */,
-				F5BEF1F81E65F047004BE878 /* ellipse_fitting.h */,
 				F5BEF1FA1E65F2E9004BE878 /* ellipse_fitting_tests.c */,
 				F5BEF1FB1E65F2E9004BE878 /* ellipse_fitting_tests.h */,
+				F5BEF1FD1E660840004BE878 /* settings.h */,
+				F5BEF1FE1E66084F004BE878 /* equations.c */,
+				F5BEF1FF1E66084F004BE878 /* equations.h */,
+				F5BEF2011E66085F004BE878 /* ellipse.c */,
+				F5BEF2021E66085F004BE878 /* ellipse.h */,
+				F5BEF2041E6608BE004BE878 /* extra_math.c */,
+				F5BEF2051E6608BE004BE878 /* extra_math.h */,
 			);
 			path = Eq4SinglePrec;
 			sourceTree = "<group>";
@@ -128,8 +140,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F5BEF1F91E65F047004BE878 /* ellipse_fitting.c in Sources */,
+				F5BEF2061E6608BE004BE878 /* extra_math.c in Sources */,
+				F5BEF2001E66084F004BE878 /* equations.c in Sources */,
 				F5BEF1EB1E647C37004BE878 /* main.c in Sources */,
+				F5BEF2031E66085F004BE878 /* ellipse.c in Sources */,
 				F5BEF1FC1E65F2E9004BE878 /* ellipse_fitting_tests.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

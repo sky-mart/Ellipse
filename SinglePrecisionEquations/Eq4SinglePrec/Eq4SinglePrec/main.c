@@ -77,10 +77,8 @@
 //    return 0;
 //}
 
-#include "ellipse_fitting.h"
+#include "ellipse.h"
 #include "ellipse_fitting_tests.h"
-#include "time.h"
-#include "stdlib.h"
 
 int main()
 {

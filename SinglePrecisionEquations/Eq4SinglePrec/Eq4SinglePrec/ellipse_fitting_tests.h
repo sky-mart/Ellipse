@@ -9,7 +9,7 @@
 #ifndef ellipse_fitting_tests_h
 #define ellipse_fitting_tests_h
 
-#include "ellipse_fitting.h"
+#include "settings.h"
 
 int test_solve2(real a, real b, real c);
 int testset_solve2(void);

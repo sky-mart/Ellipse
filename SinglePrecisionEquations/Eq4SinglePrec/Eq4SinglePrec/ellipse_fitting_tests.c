@@ -8,9 +8,13 @@
 
 #include "ellipse_fitting_tests.h"
 
-#include "math.h"
-#include "stdlib.h"
-#include "string.h"
+#include "equations.h"
+#include "ellipse.h"
+#include "extra_math.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define EQ_PREC         5e-5f   // precision for equations
 #define DST_PREC        1e-6f   // precision for distance
