@@ -1,21 +1,34 @@
-#include "ellipse_fitting.h"
-#include "math.h"
-#include "stdlib.h"
-#include "string.h"
+//
+//  ellipse_fitting_tests.c
+//  Eq4SinglePrec
+//
+//  Created by ???? ??????? on 28.02.17.
+//  Copyright © 2017 Mocsmart. All rights reserved.
+//
 
-#define EQ_PREC         5e-5f   // precision for equations    
+#include "ellipse_fitting_tests.h"
+
+#include "equations.h"
+#include "ellipse.h"
+#include "extra_math.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define EQ_PREC         5e-5f   // precision for equations
 #define DST_PREC        1e-6f   // precision for distance
 #define MAT_PREC        1e-6f   // precision for matrices
 #define ANGLE_PREC      1e-3f
 
 
-float **alloc_array2d(size_t nRows, size_t nCols)
+float **alloc_array2df(size_t nRows, size_t nCols)
 {
     float *t1, **t2;
     int i;
     if ( !(t1 = (float *)malloc(nRows * nCols * sizeof(float))) )
         return NULL;
-    if ( !(t2 = (float **)malloc(nRows * sizeof(float*))) ) {
+    if ( !(t2 = (float **)malloc(nRows * sizeof(float *))) ) {
         free(t1);
         return NULL;
     }
@@ -25,26 +38,48 @@ float **alloc_array2d(size_t nRows, size_t nCols)
     return t2;
 }
 
-void free_array2d(float **a)
+double **alloc_array2d(size_t nRows, size_t nCols)
+{
+    double *t1, **t2;
+    int i;
+    if ( !(t1 = (double *)malloc(nRows * nCols * sizeof(double))) )
+        return NULL;
+    if ( !(t2 = (double **)malloc(nRows * sizeof(double *))) ) {
+        free(t1);
+        return NULL;
+    }
+    for (i = 0; i < nRows; i++) {
+        t2[i] = &t1[i * nCols];
+    }
+    return t2;
+}
+
+void free_array2df(float **a)
 {
     free(a[0]);
     free(a);
 }
 
-int test_solve2(float a, float b, float c)
+void free_array2d(double **a)
 {
-    complexf roots[2], z;
-    float rp[3], ip[3];
+    free(a[0]);
+    free(a);
+}
+
+int test_solve2(real a, real b, real c)
+{
+    complexr roots[2], z;
+    real rp[3], ip[3];
     int i;
     if (solve2(a, b, c, roots)) {
         for (i = 0; i < 2; i++) {
             z = roots[i];
             cparts(z, &rp[i], &ip[i]);
             if (isnan(rp[i]) || isnan(ip[i]) ||
-                cabsf(a*z*z + b*z + c) >= EQ_PREC) {
+                cabsr(a*z*z + b*z + c) >= EQ_PREC) {
                 return 0;
             }
-        }            
+        }
     }
     return 1;
 }
@@ -63,20 +98,20 @@ int testset_solve2()
     return result;
 }
 
-int test_solve3(float a, float b, float c, float d)
+int test_solve3(real a, real b, real c, real d)
 {
-    complexf roots[3], z;
-    float rp[3], ip[3];
+    complexr roots[3], z;
+    real rp[3], ip[3];
     int i;
     if (solve3(a, b, c, d, roots)) {
         for (i = 0; i < 3; i++) {
             z = roots[i];
             cparts(z, &rp[i], &ip[i]);
             if (isnan(rp[i]) || isnan(ip[i]) ||
-                cabsf(a*z*z*z + b*z*z + c*z + d) >= EQ_PREC) {
+                cabsr(a*z*z*z + b*z*z + c*z + d) >= EQ_PREC) {
                 return 0;
             }
-        }            
+        }
     }
     return 1;
 }
@@ -91,20 +126,20 @@ int testset_solve3()
     return result;
 }
 
-int test_solve4(float a, float b, float c, float d, float e)
+int test_solve4(real a, real b, real c, real d, real e)
 {
-    complexf roots[4], z;
-    float rp[4], ip[4];
+    complexr roots[4], z;
+    real rp[4], ip[4];
     int i;
     if (solve4(a, b, c, d, e, roots)) {
         for (i = 0; i < 4; i++) {
             z = roots[i];
             cparts(z, &rp[i], &ip[i]);
             if (isnan(rp[i]) || isnan(ip[i]) ||
-                cabsf(a*z*z*z*z + b*z*z*z + c*z*z + d*z + e) >= EQ_PREC) {
+                cabsr(a*z*z*z*z + b*z*z*z + c*z*z + d*z + e) >= EQ_PREC) {
                 return 0;
             }
-        }            
+        }
     }
     return 1;
 }
@@ -125,66 +160,66 @@ int testset_solve()
     return result;
 }
 
-int test_dist_to_ellipse(float a, float b, float x[2], float trued)
+int test_dist_to_ellipse(real a, real b, real x[2], real trued)
 {
-    float d, l;
+    real d, l;
     if (!dist_to_ellipse(a, b, x, &d, &l)) {
         return 0;
     }
-    return fabsf(d - trued) < DST_PREC;
+    return fabsr(d - trued) < DST_PREC;
 }
 
 int testset_dist_to_ellipse()
 {
     int result = 1;
-    float x1[2] = {4.0f, 0.0f};
-    float x2[2] = {0.0f, 5.0f};
-    float x3[2] = {-3.0f, 0.0f};
-    float x4[2] = {0.0f, -8.0f};
-    float x5[2] = {2.0f, 2.0f};
-    float x6[2] = {-3.0f, 4.0f};
+    real x1[2] = {4.0f, 0.0f};
+    real x2[2] = {0.0f, 5.0f};
+    real x3[2] = {-3.0f, 0.0f};
+    real x4[2] = {0.0f, -8.0f};
+    real x5[2] = {2.0f, 2.0f};
+    real x6[2] = {-3.0f, 4.0f};
     result &= test_dist_to_ellipse(2.0f, 1.0f, x1, 2.0f);
     result &= test_dist_to_ellipse(2.0f, 1.0f, x2, 4.0f);
     result &= test_dist_to_ellipse(2.0f, 1.0f, x3, 1.0f);
     result &= test_dist_to_ellipse(2.0f, 1.0f, x4, 7.0f);
-    result &= test_dist_to_ellipse(1.0f, 1.0f, x5, hypotf(x5[0], x5[1]) - 1);
-    result &= test_dist_to_ellipse(1.0f, 1.0f, x6, hypotf(x6[0], x6[1]) - 1);
+    result &= test_dist_to_ellipse(1.0f, 1.0f, x5, hypotr(x5[0], x5[1]) - 1);
+    result &= test_dist_to_ellipse(1.0f, 1.0f, x6, hypotr(x6[0], x6[1]) - 1);
     return result;
 }
 
-int test_ludcmp(float **a, int n)
+int test_ludcmp(mreal **a, int n)
 {
-    float A_data[MAX_DCMP_N*MAX_DCMP_N];
-    float L_data[MAX_DCMP_N*MAX_DCMP_N];
-    float U_data[MAX_DCMP_N*MAX_DCMP_N];
-    float LxU_data[MAX_DCMP_N*MAX_DCMP_N], dum;
-    arm_matrix_instance_f32 A, L, U, LxU;
+    mreal A_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal L_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal U_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal LxU_data[MAX_DCMP_N*MAX_DCMP_N], dum;
+    matrix A, L, U, LxU;
     int i, j, indx[MAX_DCMP_N];
-    uint32_t ii;   
+    uint32_t ii;
     
-    for (i = 0; i < n; i++) 
-        for (j = 0; j < n; j++) 
+    for (i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
             A_data[i*n + j] = a[i][j];
     
-    arm_mat_init_f32(&A, n, n, A_data);
-    arm_mat_init_f32(&L, n, n, L_data);
-    arm_mat_init_f32(&U, n, n, U_data);
-    arm_mat_init_f32(&LxU, n, n, LxU_data);
+    minit(&A, n, n, A_data);
+    minit(&L, n, n, L_data);
+    minit(&U, n, n, U_data);
+    minit(&LxU, n, n, LxU_data);
     
     if (!ludcmp(a, n, indx)) {
         return 0;
     }
     
-    memset(L_data, 0, n * n * sizeof(float)); 
-    memset(U_data, 0, n * n * sizeof(float)); 
+    memset(L_data, 0, n * n * sizeof(mreal));
+    memset(U_data, 0, n * n * sizeof(mreal));
     for (i = 0; i < n; i++) {
         L_data[i*n + i] = 1.0f;
-        for (j = 0; j < i; j++)  
+        for (j = 0; j < i; j++)
             L_data[i*n + j] = a[i][j];
         for (j = i; j < n; j++)
             U_data[i*n + j] = a[i][j];
     }
-
+    
     for (i = 0; i < n; i++) {
         for (j  = 0; j < n; j++) {
             dum = A_data[i*n + j];
@@ -193,19 +228,19 @@ int test_ludcmp(float **a, int n)
         }
     }
     
-    arm_mat_mult_f32(&L, &U, &LxU);
-    arm_mat_sub_f32(&LxU, &A, &L);
-    arm_max_f32(L_data, n * n, &dum, &ii);
+    mmult(&L, &U, &LxU);
+    msub(&LxU, &A, &L);
+    vmaxm(L_data, n * n, &dum, &ii);
     
-    return fabs(dum) < MAT_PREC;
+    return fabsr(dum) < MAT_PREC;
 }
 
 int testset_ludcmp()
 {
     int result = 1;
-    float **a;
+    mreal **a;
     
-    if ( !(a = alloc_array2d(5, 5)) ) {
+    if ( !(a = alloc_array2dm(5, 5)) ) {
         return 0;
     }
     a[0][0] = 1.0f;     a[0][1] = 2.0f;     a[0][2] = 5.0f;
@@ -226,17 +261,17 @@ int testset_ludcmp()
     a[4][0] = 0.3f;     a[4][1] = 3.8f;     a[4][2] = 7.4f;     a[4][3] = 4.7f;     a[4][4] = -26.0f;
     result &= test_ludcmp(a, 5);
     
-    free_array2d(a);
+    free_array2dm(a);
     return result;
 }
 
-int test_linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb)
+int test_linsolve(matrix *pA, matrix *pb)
 {
-    float A_src_data[MAX_DCMP_N*MAX_DCMP_N];
-    float b_src_data[MAX_DCMP_N], b_acq_data[MAX_DCMP_N];
-    arm_matrix_instance_f32 A_src, b_src, b_acq;
+    mreal A_src_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal b_src_data[MAX_DCMP_N], b_acq_data[MAX_DCMP_N];
+    matrix A_src, b_src, b_acq;
     int i, n;
-    float dum, big;
+    mreal dum, big;
     
     n = pA->numRows;
     
@@ -247,30 +282,30 @@ int test_linsolve(arm_matrix_instance_f32 *pA, arm_matrix_instance_f32 *pb)
     for (i = n; i < n * n; i++) {
         A_src_data[i] = pA->pData[i];
     }
-    arm_mat_init_f32(&A_src, n, n, A_src_data);
-    arm_mat_init_f32(&b_src, n, 1, b_src_data);
-    arm_mat_init_f32(&b_acq, n, 1, b_acq_data);
+    minit(&A_src, n, n, A_src_data);
+    minit(&b_src, n, 1, b_src_data);
+    minit(&b_acq, n, 1, b_acq_data);
     
     if (!linsolve(pA, pb))
         return 0;
-
-    arm_mat_mult_f32(&A_src, pb, &b_acq);
-    arm_mat_sub_f32(&b_src, &b_acq, pb);
+    
+    mmult(&A_src, pb, &b_acq);
+    msub(&b_src, &b_acq, pb);
     
     big = 0.0f;
     for (i = 0; i < n; i++) {
-        if ( (dum = fabsf(pb->pData[i])) > big) {
+        if ( (dum = fabsr(pb->pData[i])) > big) {
             big = dum;
         }
     }
-    return fabsf(big) < MAT_PREC;
+    return fabsr(big) < MAT_PREC;
 }
 
 int testset_linsolve()
 {
-    float A_data[MAX_DCMP_N*MAX_DCMP_N];
-    float b_data[MAX_DCMP_N];
-    arm_matrix_instance_f32 A, b;
+    mreal A_data[MAX_DCMP_N*MAX_DCMP_N];
+    mreal b_data[MAX_DCMP_N];
+    matrix A, b;
     int n = 3;
     int result = 1;
     
@@ -280,26 +315,26 @@ int testset_linsolve()
     
     b_data[0] = 3.0f;           b_data[1] = 1.0f;           b_data[2] = 2.5f;
     
-    arm_mat_init_f32(&A, n, n, A_data);
-    arm_mat_init_f32(&b, n, 1, b_data);
+    minit(&A, n, n, A_data);
+    minit(&b, n, 1, b_data);
     
     result &= testset_ludcmp();
     result &= test_linsolve(&A, &b);
     return result;
 }
 
-float randf(float from, float to)
+real randf(real from, real to)
 {
-    float val = ((float)rand()) / RAND_MAX;
+    real val = ((real)rand()) / RAND_MAX;
     return (to - from) * val + from;
 }
 
-void generate_points(int points_num, struct ellipse *pEl, float noise_level, float **points)
+void generate_points(int points_num, struct ellipse *pEl, real noise_level, real **points)
 {
-    float step = 2 * M_PI / points_num;
-    float t, x[2];
+    real step = 2 * M_PI / points_num;
+    real t, x[2];
     int i;
-
+    
     t = 0;
     for (i = 0; i < points_num; i++) {
         x[0] = pEl->a * cosf(t) * (1 + randf(-noise_level, noise_level));
@@ -309,24 +344,24 @@ void generate_points(int points_num, struct ellipse *pEl, float noise_level, flo
     }
 }
 
-float angle_to_0_2pi(float x)
+real angle_to_0_2pi(real x)
 {
-    while (x < 0) 
+    while (x < 0)
         x += 2 * M_PI;
     while (x >= 2 * M_PI)
         x -= 2 * M_PI;
     return x;
 }
 
-int angles_cmp(float alpha, float beta)
+int angles_cmp(real alpha, real beta)
 {
-    if (fabsf(alpha) < ANGLE_PREC)
+    if (fabsr(alpha) < FIT_ABS_PREC)
         alpha = 0;
-    if (fabsf(beta) < ANGLE_PREC)
+    if (fabsr(beta) < FIT_ABS_PREC)
         beta = 0;
     alpha   = angle_to_0_2pi(alpha);
     beta    = angle_to_0_2pi(beta);
-    return fabsf(alpha - beta) < ANGLE_PREC;
+    return (fabsr(1 - alpha/beta) < FIT_REL_PREC) || (fabsr(alpha - beta) < FIT_ABS_PREC);
 }
 
 int ellipse_cmp(struct ellipse *pSrc, struct ellipse *pRes)
@@ -335,63 +370,78 @@ int ellipse_cmp(struct ellipse *pSrc, struct ellipse *pRes)
     uint8_t aeqa, beqb; // src_param is equal res_param
     uint8_t aeqb, beqa;
     uint8_t srciscircle;
+    uint8_t srcXc_iszero, resXc_iszero, Xc_ok;
     for (i = 0; i < 2; i++) {
-        if (pSrc->Xc[i] == 0) {
-            if (fabsf(pRes->Xc[i]) > FIT_REL_PREC)
+        srcXc_iszero = fabsr(pSrc->Xc[i]) < FIT_ABS_PREC;
+        resXc_iszero = fabsr(pRes->Xc[i]) < FIT_ABS_PREC;
+        Xc_ok = fabsr(1 - pRes->Xc[i] / pSrc->Xc[i]) < FIT_REL_PREC ||
+                    fabsr(pSrc->Xc[i] - pRes->Xc[i]) < FIT_ABS_PREC;
+        if (srcXc_iszero) {
+            if (!resXc_iszero)
                 return 0;
-        } else if (fabsf(1 - pRes->Xc[i] / pSrc->Xc[i]) > FIT_REL_PREC)
+        } else if (!Xc_ok) {
             return 0;
+        }
     }
     
-    aeqa = fabsf(1.0f - pRes->a / pSrc->a) < FIT_REL_PREC;
-    beqb = fabsf(1.0f - pRes->b / pSrc->b) < FIT_REL_PREC;
-    srciscircle = fabsf(1.0f - pSrc->a / pSrc->b) < FIT_REL_PREC;
+    aeqa = (fabsr(1.0f - pRes->a / pSrc->a) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->a) < FIT_ABS_PREC);
+    beqb = (fabsr(1.0f - pRes->b / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->b - pRes->b) < FIT_ABS_PREC);
+    srciscircle = (fabsr(1.0f - pSrc->a / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->b) < FIT_ABS_PREC);
     if (aeqa && beqb) {
         if (!srciscircle)
-            return angles_cmp(pRes->alpha, pSrc->alpha) || 
-                angles_cmp(pRes->alpha, pSrc->alpha + M_PI);
+            return angles_cmp(pRes->alpha, pSrc->alpha) ||
+            angles_cmp(pRes->alpha, pSrc->alpha + M_PI);
         return 1;
     } else {
-        aeqb = fabsf(1.0f - pRes->b / pSrc->a) < FIT_REL_PREC;
-        beqb = fabsf(1.0f - pRes->a / pSrc->b) < FIT_REL_PREC;
+        aeqb = (fabsr(1.0f - pRes->b / pSrc->a) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->b) < FIT_ABS_PREC);
+        beqb = (fabsr(1.0f - pRes->a / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->b - pRes->a) < FIT_ABS_PREC);
         if (aeqb && beqa) {
             if (srciscircle)
-                return angles_cmp(pRes->alpha, pSrc->alpha + M_PI / 2.0f) || 
-                    angles_cmp(pRes->alpha, pSrc->alpha + 3.0f * M_PI / 2.0f);
+                return angles_cmp(pRes->alpha, pSrc->alpha + M_PI / 2.0f) ||
+                angles_cmp(pRes->alpha, pSrc->alpha + 3.0f * M_PI / 2.0f);
             return 1;
         }
     }
     return 0;
 }
 
-int test_ellipse_fitting(int points_num, float a, float alpha, float noise_level)
+int test_ellipse_fitting(int points_num, real a, real alpha, real noise_level)
 {
-    float **points;
+    real **points;
     struct ellipse init, src, res;
- 
+    
     src.Xc[0] = 1.0;
     src.Xc[1] = 1.0;
     src.a = a;
     src.b = 1.0;
     src.alpha = alpha;
     
-    if ( !(points = alloc_array2d(points_num, 2)) )
+    if ( !(points = alloc_array2dr(points_num, 2)) )
         return 0;
     
     generate_points(points_num, &src, noise_level, points);
     ellipse_fitting_init_guess(points, points_num, &init);
     if (!ellipse_fitting(points, points_num, &init, &res)) {
-        free_array2d(points);
+        free_array2dr(points);
         return 0;
     }
     
-    free_array2d(points);
+    free_array2dr(points);
     return ellipse_cmp(&src, &res);
 }
 
 int testset_ellipse_fitting()
 {
     int result = 1;
-    result &= test_ellipse_fitting(500, 1.5f, M_PI / 6.0f, 0);
+    real a, alpha;
+    for (a = 1.0f; a < 2.0f; a += 0.1f) {
+        for (alpha = -M_PI + M_PI/36; alpha < M_PI - M_PI/36; alpha += M_PI/4) {
+            result &= test_ellipse_fitting(500, a, alpha, 0);
+            if (!result) {
+                return 0;
+            }
+        }
+    }
+//    result &= test_ellipse_fitting(500, 1.0f, 1.6580627893946129, 0);
     return result;
 }

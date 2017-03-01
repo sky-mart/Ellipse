@@ -68,11 +68,11 @@ int solve3(float a, float b, float c, float d, complexf roots[3])
     if (Q >= 0) {
         //alpha   = mypowf(-q/2 + sqrtf(Q), 1.0/3);
         //beta    = mypowf(-q/2 - sqrtf(Q), 1.0/3);
-        alpha   = cbrtf(-q/2 + sqrtf(Q));
-        beta    = cbrtf(-q/2 - sqrtf(Q));
+        alpha   = cbrt(-q/2 + sqrt(Q));
+        beta    = cbrt(-q/2 - sqrt(Q));
     } else {
-        alpha   = cpowf(-q/2 + sqrtf(-Q) * I, 1.0/3);
-        beta    = cpowf(-q/2 - sqrtf(-Q) * I, 1.0/3);
+        alpha   = cpow(-q/2 + sqrt(-Q) * I, 1.0/3);
+        beta    = cpow(-q/2 - sqrt(-Q) * I, 1.0/3);
     }
     
     cparts(alpha, &rp[0], &ip[0]);

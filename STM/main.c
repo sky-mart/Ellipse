@@ -1,14 +1,11 @@
-#include "ellipse_fitting.h"
-#include "ellipse_fitting_tests.h" 
-#include "time.h"
-#include "stdlib.h"
+#include "ellipse_fitting_tests.h"
 
 int main()
 {
     int i;
     
     //srand(time(NULL));
-       
+    
     if (!testset_solve()) {
         i = 21;
     }
@@ -23,4 +20,5 @@ int main()
     }
     
     while (1) {}
+    //return 1;
 }

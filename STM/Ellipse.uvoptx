@@ -198,7 +198,7 @@
           <Type>0</Type>
           <LineNumber>564</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134229300</Address>
+          <Address>134234900</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -212,25 +212,41 @@
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>497</LineNumber>
+          <LineNumber>25</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134228640</Address>
+          <Address>134238524</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\ellipse_fitting.c</Filename>
+          <Filename>.\main.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
         <Bp>
           <Number>2</Number>
           <Type>0</Type>
-          <LineNumber>68</LineNumber>
+          <LineNumber>22</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134233710</Address>
+          <Address>134238522</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>.\main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression></Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>541</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134234580</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -239,7 +255,7 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>.\ellipse_fitting.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Ellipse\ellipse_fitting.c\68</Expression>
+          <Expression>\\Ellipse\ellipse_fitting.c\541</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -317,6 +333,16 @@
           <count>14</count>
           <WinNumber>1</WinNumber>
           <ItemText>a</ItemText>
+        </Ww>
+        <Ww>
+          <count>15</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>x[0]</ItemText>
+        </Ww>
+        <Ww>
+          <count>16</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>x[1]</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
