@@ -355,13 +355,13 @@ real angle_to_0_2pi(real x)
 
 int angles_cmp(real alpha, real beta)
 {
-    if (fabsr(alpha) < ANGLE_PREC)
+    if (fabsr(alpha) < FIT_ABS_PREC)
         alpha = 0;
-    if (fabsr(beta) < ANGLE_PREC)
+    if (fabsr(beta) < FIT_ABS_PREC)
         beta = 0;
     alpha   = angle_to_0_2pi(alpha);
     beta    = angle_to_0_2pi(beta);
-    return fabsr(alpha - beta) < ANGLE_PREC;
+    return (fabsr(1 - alpha/beta) < FIT_REL_PREC) || (fabsr(alpha - beta) < FIT_ABS_PREC);
 }
 
 int ellipse_cmp(struct ellipse *pSrc, struct ellipse *pRes)
@@ -370,25 +370,31 @@ int ellipse_cmp(struct ellipse *pSrc, struct ellipse *pRes)
     uint8_t aeqa, beqb; // src_param is equal res_param
     uint8_t aeqb, beqa;
     uint8_t srciscircle;
+    uint8_t srcXc_iszero, resXc_iszero, Xc_ok;
     for (i = 0; i < 2; i++) {
-        if (pSrc->Xc[i] == 0) {
-            if (fabsr(pRes->Xc[i]) > FIT_REL_PREC)
+        srcXc_iszero = fabsr(pSrc->Xc[i]) < FIT_ABS_PREC;
+        resXc_iszero = fabsr(pRes->Xc[i]) < FIT_ABS_PREC;
+        Xc_ok = fabsr(1 - pRes->Xc[i] / pSrc->Xc[i]) < FIT_REL_PREC ||
+                    fabsr(pSrc->Xc[i] - pRes->Xc[i]) < FIT_ABS_PREC;
+        if (srcXc_iszero) {
+            if (!resXc_iszero)
                 return 0;
-        } else if (fabsr(1 - pRes->Xc[i] / pSrc->Xc[i]) > FIT_REL_PREC)
+        } else if (!Xc_ok) {
             return 0;
+        }
     }
     
-    aeqa = fabsr(1.0f - pRes->a / pSrc->a) < FIT_REL_PREC;
-    beqb = fabsr(1.0f - pRes->b / pSrc->b) < FIT_REL_PREC;
-    srciscircle = fabsr(1.0f - pSrc->a / pSrc->b) < FIT_REL_PREC;
+    aeqa = (fabsr(1.0f - pRes->a / pSrc->a) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->a) < FIT_ABS_PREC);
+    beqb = (fabsr(1.0f - pRes->b / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->b - pRes->b) < FIT_ABS_PREC);
+    srciscircle = (fabsr(1.0f - pSrc->a / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->b) < FIT_ABS_PREC);
     if (aeqa && beqb) {
         if (!srciscircle)
             return angles_cmp(pRes->alpha, pSrc->alpha) ||
             angles_cmp(pRes->alpha, pSrc->alpha + M_PI);
         return 1;
     } else {
-        aeqb = fabsr(1.0f - pRes->b / pSrc->a) < FIT_REL_PREC;
-        beqb = fabsr(1.0f - pRes->a / pSrc->b) < FIT_REL_PREC;
+        aeqb = (fabsr(1.0f - pRes->b / pSrc->a) < FIT_REL_PREC) || (fabsr(pSrc->a - pRes->b) < FIT_ABS_PREC);
+        beqb = (fabsr(1.0f - pRes->a / pSrc->b) < FIT_REL_PREC) || (fabsr(pSrc->b - pRes->a) < FIT_ABS_PREC);
         if (aeqb && beqa) {
             if (srciscircle)
                 return angles_cmp(pRes->alpha, pSrc->alpha + M_PI / 2.0f) ||
@@ -427,6 +433,15 @@ int test_ellipse_fitting(int points_num, real a, real alpha, real noise_level)
 int testset_ellipse_fitting()
 {
     int result = 1;
-    result &= test_ellipse_fitting(500, 1.5f, M_PI / 6.0f, 0);
+    real a, alpha;
+    for (a = 1.0f; a < 2.0f; a += 0.1f) {
+        for (alpha = -M_PI + M_PI/36; alpha < M_PI - M_PI/36; alpha += M_PI/4) {
+            result &= test_ellipse_fitting(500, a, alpha, 0);
+            if (!result) {
+                printf("azaz\n");
+            }
+        }
+    }
+//    result &= test_ellipse_fitting(500, 1.0f, 1.6580627893946129, 0);
     return result;
 }

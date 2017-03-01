@@ -9,6 +9,8 @@
 #include "equations.h"
 #include "extra_math.h"
 
+#define SQRT3 1.732050807568877
+
 /*
  * solves equation ax^2 + bx + c = 0
  * puts roots in the array
@@ -43,8 +45,8 @@ int solve2(real a, real b, real c, complexr roots[2])
  */
 int solve3(real a, real b, real c, real d, complexr roots[3])
 {
-    real p, q, Q;
-    complexr alpha, beta;
+    double p, q, Q;
+    double complex alpha, beta;
     //    real rp[5], ip[5]; // debug
 #ifdef SINGLE_PREC_DEBUG
     printf("solve3:\n");
@@ -74,11 +76,11 @@ int solve3(real a, real b, real c, real d, complexr roots[3])
     if (Q >= 0) {
         //alpha   = mypowr(-q/2 + sqrtr(Q), 1.0/3);
         //beta    = mypowr(-q/2 - sqrtr(Q), 1.0/3);
-        alpha   = cbrtr(-q/2 + sqrtr(Q));
-        beta    = cbrtr(-q/2 - sqrtr(Q));
+        alpha   = cbrt(-q/2 + sqrt(Q));
+        beta    = cbrt(-q/2 - sqrt(Q));
     } else {
-        alpha   = cpowr(-q/2 + sqrtr(-Q) * I, 1.0/3);
-        beta    = cpowr(-q/2 - sqrtr(-Q) * I, 1.0/3);
+        alpha   = cpow(-q/2 + sqrt(-Q) * I, 1.0/3);
+        beta    = cpow(-q/2 - sqrt(-Q) * I, 1.0/3);
     }
 #ifdef SINGLE_PREC_DEBUG
     printf("alpha="); cprint(alpha); printf("\n");
@@ -89,8 +91,8 @@ int solve3(real a, real b, real c, real d, complexr roots[3])
     //    cparts(beta, &rp[1], &ip[1]);
     
     roots[0] = alpha + beta - b/(3*a);
-    roots[1] = -(alpha+beta)/2 - b/(3*a) + (alpha-beta)*sqrtr(3)/2 * I;
-    roots[2] = -(alpha+beta)/2 - b/(3*a) - (alpha-beta)*sqrtr(3)/2 * I;
+    roots[1] = -(alpha+beta)/2 - b/(3*a) + (alpha-beta)*SQRT3/2 * I;
+    roots[2] = -(alpha+beta)/2 - b/(3*a) - (alpha-beta)*SQRT3/2 * I;
 #ifdef SINGLE_PREC_DEBUG
     printf("roots[0]="); cprint(roots[0]); printf("\n");
     printf("roots[1]="); cprint(roots[1]); printf("\n");

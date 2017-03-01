@@ -187,21 +187,22 @@ class TestEllipse(unittest.TestCase):
         self.assertTrue(norm(C - center) / norm(center) < rel_prec)
         self.assertTrue(abs(R - radius) / R < rel_prec)
 
-    # @parameterized.expand(cartesian((
-    #     xrange(30, 50),
-    #     np.linspace(1.0, 2.0, 10),
-    #     np.linspace(0, 2*np.pi, 5)))
-    # )
-    # def test_ellipse_fitting(self, points_num, a, alpha):
-    #     rel_prec = 1e-6
-    #     Xc = 1.0
-    #     Yc = 10
-    #     b = 1.0
-    #
-    #     src_params = [Xc, Yc, a, b, alpha]
-    #     points = generate_points(points_num, [Xc, Yc], a, b, alpha)
-    #     params = ellipse_fitting(points, rel_prec)
-    #     self.compare_ellipse_params(src_params, params, rel_prec)
+    @parameterized.expand(cartesian((
+        xrange(500, 501),
+        np.linspace(1.0, 2.0, 10),
+        np.linspace(0, 2*np.pi, 5)))
+    )
+    def test_ellipse_fitting(self, points_num, a, alpha):
+        rel_prec = 1e-6
+        Xc = 1.0
+        Yc = 10
+        b = 1.0
+
+        src_params = [Xc, Yc, a, b, alpha]
+        points = generate_points(points_num, [Xc, Yc], a, b, alpha)
+        init = ellipse_fitting_init_guess(points)
+        params = ellipse_fitting(points, init)
+        self.compare_ellipse_params(src_params, params, rel_prec)
 
     # @parameterized.expand(cartesian((
     #     np.linspace(500, 501, 1),

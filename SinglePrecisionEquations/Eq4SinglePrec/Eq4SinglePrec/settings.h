@@ -11,10 +11,11 @@
 
 #include <complex.h>    
 #include <math.h>
+#include <stdio.h>
 
 //#define SINGLE_PREC_DEBUG
 //#define SINGLE_PREC
-#define MAT_SINGLE_PREC
+//#define MAT_SINGLE_PREC
 
 #ifdef SINGLE_PREC
     typedef float real;
@@ -96,7 +97,8 @@ typedef mat matrix;
 #define MAX_ITER_COUNT              50
 #define MAX_ERROR_INCREASE_COUNT    4
 #define PARAMS_COUNT                5
-#define FIT_REL_PREC                1e-4f
+#define FIT_REL_PREC                1e-3f
+#define FIT_ABS_PREC                1e-2f
 
 
 #endif /* settings_h */

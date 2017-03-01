@@ -127,7 +127,7 @@ void mass_center(real **points, int N, real C[2], real *pR)
     }
     *pR /= N;
 }
-
+//#include <stdio.h>
 int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse *pRes)
 {
     int i;
@@ -146,8 +146,8 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
     matrix Js  = {PARAMS_COUNT,    PARAMS_COUNT,   Js_data};
     matrix es  = {PARAMS_COUNT,    1,              es_data};
     
-    uint8_t Xc_ok[2], alpha_ok;
-    uint8_t rel_prec_achieved;
+    uint8_t Xc_ok[2], alpha_ok, a_ok, b_ok;
+    uint8_t rel_prec_achieved, abs_prec_achieved;
     
     Xc[0]   = pInit->Xc[0];
     Xc[1]   = pInit->Xc[1];
@@ -156,17 +156,19 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
     alpha   = pInit->alpha;
     
     while (iter_count <= MAX_ITER_COUNT) {
+//        printf("iter %2i: %lf\n", iter_count, a/b);
+        iscircle = fabsr(1 - fabsr(a/b)) < FIT_REL_PREC;
+        if (iscircle)
+            alpha = 0;
+        
         for (i = 0; i < N; i++) {
             global_to_canonical(points[i], alpha, Xc, x);
-            if (i == 89) {
-                i = 89;
-            }
+//            printf("global: %lf, %lf\n", points[i][0], points[i][1]);
+//            printf("canon: %lf, %lf\n", x[0], x[1]);
             if (!dist_to_ellipse(a, b, x, &d, &l)) {
                 return 0;
             }
             e_data[i] = -d;
-            
-            iscircle = fabsr(1 - fabsr(a/b)) < FIT_REL_PREC;
             
             if (iscircle) {
                 fill_jacobian(J_data + i*(PARAMS_COUNT-1), x, d, l, a, b, alpha);
@@ -222,10 +224,14 @@ int ellipse_fitting(real **points, int N, struct ellipse *pInit, struct ellipse 
         else if (check_pot_zero_param(alpha, es_data[4]))
             alpha_ok = 1;
         
-        rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok &&
-        fabsr(es_data[2]/a) < FIT_REL_PREC && fabsr(es_data[3]/b) < FIT_REL_PREC;
+        a_ok = fabsr(es_data[2]/a) < FIT_REL_PREC;
+        b_ok = fabsr(es_data[3]/b) < FIT_REL_PREC;
         
-        if (rel_prec_achieved || normm(es_data, es.numRows) < powr(FIT_REL_PREC, 1.5)) {
+        rel_prec_achieved = Xc_ok[0] && Xc_ok[1] && alpha_ok && a_ok && b_ok;
+//        printf("%lf\n", normm(es_data, es.numRows));
+        abs_prec_achieved = normm(es_data, es.numRows) < (FIT_ABS_PREC / 5);
+        
+        if (rel_prec_achieved || abs_prec_achieved) {
             pRes->Xc[0] = Xc[0];
             pRes->Xc[1] = Xc[1];
             pRes->a = a;
@@ -346,14 +352,14 @@ void global_to_canonical(real X[2], real alpha, real Xc[2], real x[2])
     real ca = cosr(alpha);
     real sa = sinr(alpha);
     x[0] = ca * (X[0] - Xc[0]) + sa * (X[1] - Xc[1]);
-    x[1] = -sa * (X[0] - Xc[1]) + ca * (X[1] - Xc[1]);
+    x[1] = -sa * (X[0] - Xc[0]) + ca * (X[1] - Xc[1]);
 }
 
 void canonical_to_global(real x[2], real alpha, real Xc[2], real X[2])
 {
     real ca = cosr(alpha);
     real sa = sinr(alpha);
-    X[0] = ca * x[0] + -sa * x[1] + Xc[0];
+    X[0] = ca * x[0] -sa * x[1] + Xc[0];
     X[1] = sa * x[0] + ca * x[1] + Xc[1];
 }
 

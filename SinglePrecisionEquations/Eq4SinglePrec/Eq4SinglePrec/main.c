@@ -111,6 +111,7 @@ int main()
         printf("testset_ellipse_fitting: passed\n");
     }
     
-    while (1) {}
+//    while (1) {}
+    return 1;
 }
 
