@@ -13,9 +13,19 @@
 #include <math.h>
 #include <stdio.h>
 
+// algorithm and tests parameters
+#define MAX_POINTS_NUM              500
+#define MAX_DCMP_N                  5
+#define MAX_ITER_COUNT              50
+#define MAX_ERROR_INCREASE_COUNT    4
+#define PARAMS_COUNT                5
+#define FIT_REL_PREC                1e-4f
+#define FIT_ABS_PREC                1e-3f
+
 //#define SINGLE_PREC_DEBUG
-//#define SINGLE_PREC
-//#define MAT_SINGLE_PREC
+#define SINGLE_PREC
+#define MAT_SINGLE_PREC
+//#define SOLVE3_SINGLE_PREC
 
 #ifdef SINGLE_PREC
     typedef float real;
@@ -29,6 +39,7 @@
     #define cpowr   cpowf
     #define fminr   fminf
     #define fabsr   fabsf
+    #define acosr   acosf
     #define sinr    sinf
     #define cosr    cosf
     #define cabsr   cabsf
@@ -48,6 +59,7 @@
     #define cpowr   cpow
     #define fminr   fmin
     #define fabsr   fabs
+    #define acosr   acos
     #define sinr    sin
     #define cosr    cos
     #define cabsr   cabs
@@ -91,14 +103,26 @@ typedef mat matrix;
 #define minit       mat_init
 #define msub        mat_sub
 
-// algorithm and tests parameters
-#define MAX_POINTS_NUM              500
-#define MAX_DCMP_N                  5
-#define MAX_ITER_COUNT              50
-#define MAX_ERROR_INCREASE_COUNT    4
-#define PARAMS_COUNT                5
-#define FIT_REL_PREC                1e-3f
-#define FIT_ABS_PREC                1e-2f
-
+#ifdef SOLVE3_SINGLE_PREC
+    typedef float sreal;
+    typedef float complex complexs;
+    #define cbrts   cbrtf
+    #define sqrts   sqrtf
+    #define cpows   cpowf
+#define pows    powf
+#define coss    cosf
+#define acoss   acosf
+#define fabss   fabsf
+#else
+    typedef double sreal;
+    typedef double complex complexs;
+    #define cbrts   cbrt
+    #define sqrts   sqrt
+    #define cpows   cpow
+#define pows pow
+#define coss    cos
+#define acoss   acos
+#define fabss   fabs
+#endif
 
 #endif /* settings_h */

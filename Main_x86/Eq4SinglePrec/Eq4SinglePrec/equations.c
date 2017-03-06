@@ -38,6 +38,9 @@ int solve2(real a, real b, real c, complexr roots[2])
     return 1;
 }
 
+uint single_prec_not_enough_counter = 0;
+uint solve3_call_counter = 0;
+
 /*
  * solves equation ax^3 + bx^2 + cx + d = 0
  * puts roots in the array
@@ -45,9 +48,10 @@ int solve2(real a, real b, real c, complexr roots[2])
  */
 int solve3(real a, real b, real c, real d, complexr roots[3])
 {
-    double p, q, Q;
-    double complex alpha, beta;
+    sreal p, q, Q;
+    complexs alpha, beta;
     //    real rp[5], ip[5]; // debug
+    solve3_call_counter++;
 #ifdef SINGLE_PREC_DEBUG
     printf("solve3:\n");
     printf("a=%e\n", a);
@@ -72,15 +76,19 @@ int solve3(real a, real b, real c, real d, complexr roots[3])
     // Q = 0 - one single real root and one double real root, or,
     //         if p = q = 0, then one triple real root
     // Q < 0 - three real roots
-    
+#define DIFF_THRESHOLD 1e-9
     if (Q >= 0) {
-        //alpha   = mypowr(-q/2 + sqrtr(Q), 1.0/3);
-        //beta    = mypowr(-q/2 - sqrtr(Q), 1.0/3);
-        alpha   = cbrt(-q/2 + sqrt(Q));
-        beta    = cbrt(-q/2 - sqrt(Q));
+        if (((-q/2 + sqrts(Q)) < DIFF_THRESHOLD) || (((-q/2 - sqrts(Q)) < DIFF_THRESHOLD))) {
+            single_prec_not_enough_counter++;
+        }
+        alpha   = cbrts(-q/2 + sqrts(Q));
+        beta    = cbrts(-q/2 - sqrts(Q));
     } else {
-        alpha   = cpow(-q/2 + sqrt(-Q) * I, 1.0/3);
-        beta    = cpow(-q/2 - sqrt(-Q) * I, 1.0/3);
+        if (((-q/2 + sqrts(-Q)) < DIFF_THRESHOLD) || (((-q/2 - sqrts(-Q)) < DIFF_THRESHOLD))) {
+            single_prec_not_enough_counter++;
+        }
+        alpha   = cpows(-q/2 + sqrts(-Q) * I, 1.0/3);
+        beta    = cpows(-q/2 - sqrts(-Q) * I, 1.0/3);
     }
 #ifdef SINGLE_PREC_DEBUG
     printf("alpha="); cprint(alpha); printf("\n");
@@ -106,6 +114,36 @@ int solve3(real a, real b, real c, real d, complexr roots[3])
     
     return 1;
 }
+
+//int solve3(real a, real b, real c, real d, complexr x[3]) {
+//    sreal q,r,r2,q3;
+//    sreal t;
+//    sreal aa,bb;
+//    b /= a; c /= a; d /= a;
+//    a = b; b = c; c = d;
+//    q=(a*a-3.0f*b)/9.0f;
+//    r=(a*(2.0f*a*a-9.0f*b)+27.0f*c)/54.0f;
+//    r2=r*r; q3=q*q*q;
+//    if(r2<q3) {
+//        t=acoss(r/sqrts(q3));
+//        a/=3.0f;
+//        q=-2.0f*sqrts(q);
+//        x[0]=q*coss(t/3.0f)-a;
+//        x[1]=q*coss((t+2.0f*M_PI)/3.0f)-a;
+//        x[2]=q*coss((t-2.0f*M_PI)/3.0f)-a;
+//    }
+//    else {
+//        if(r<=0.0f) r=-r;
+//        aa=-pows(r+sqrts(r2-q3),1.0f/3.0f);
+//        if(aa!=0.0f) bb=q/aa;
+//        else bb=0.;
+//        a/=3.0f; q=aa+bb; r=aa-bb;
+//        x[0]=q-a;
+//        x[1]=(-0.5f)*q-a + (SQRT3*0.5f)*fabss(r) * I;
+//        x[2]=(-0.5f)*q-a + (SQRT3*0.5f)*fabss(r) * I;
+//    }
+//    return 1;
+//}
 
 /*
  * solves equation ax^4 + bx^3 + cx^2 + dx + e = 0

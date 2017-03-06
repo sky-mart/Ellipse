@@ -80,6 +80,9 @@
 #include "ellipse.h"
 #include "ellipse_fitting_tests.h"
 
+extern uint solve3_call_counter;
+extern uint single_prec_not_enough_counter;
+
 int main()
 {
     int i;
@@ -110,6 +113,9 @@ int main()
     } else {
         printf("testset_ellipse_fitting: passed\n");
     }
+    
+    printf("solve3_call_counter: %i\n", solve3_call_counter);
+    printf("single_prec_not_enough_counter: %i\n", single_prec_not_enough_counter);
     
 //    while (1) {}
     return 1;
