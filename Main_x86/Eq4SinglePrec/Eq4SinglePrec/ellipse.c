@@ -46,11 +46,11 @@ int dist_to_ellipse(real a, real b, real x[2], real *pd, real *pl)
                 roots)) {
         return 0;
     }
-    //    for (i = 0; i < 4; i++) {
-    //        printf("r[%i] = ", i);
-    //        cprint(roots[i]);
-    //        printf("\n");
-    //    }
+//        for (i = 0; i < 4; i++) {
+//            printf("r[%i] = ", i);
+//            cprint(roots[i]);
+//            printf("\n");
+//        }
     
     // Choose lambda that gives minimal distance
     *pd = FLT_MAX;

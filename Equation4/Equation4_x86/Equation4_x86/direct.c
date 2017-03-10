@@ -126,3 +126,21 @@ int direct_solve4(dreal a, dreal b, dreal c, dreal d, dreal e, dcomplex roots[4]
     return 1;
 }
 
+int direct_solve4_real(dreal a, dreal b, dreal c, dreal d, dreal e, dreal *roots, uint *num_roots)
+{
+    dcomplex croots[4];
+    uint i, j;
+    if (!direct_solve4(a, b, c, d, e, croots))
+        return 0;
+    *num_roots = 4;
+    for (i = 0; i < 4; i++) {
+        if (cimagd(roots[i]) != 0) {
+            for (j = i + 1; j < 4; j++) {
+                roots[j-1] = roots[j];
+            }
+            *num_roots -= 1;
+        }
+    }
+    return 1;
+}
+

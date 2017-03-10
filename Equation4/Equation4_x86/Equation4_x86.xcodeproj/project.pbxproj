@@ -10,6 +10,7 @@
 		F5947AB61E6DB64F00ABFBE7 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F5947AB51E6DB64F00ABFBE7 /* main.c */; };
 		F5947ABE1E6DB68900ABFBE7 /* direct.c in Sources */ = {isa = PBXBuildFile; fileRef = F5947ABC1E6DB68900ABFBE7 /* direct.c */; };
 		F5947AC21E6DB97A00ABFBE7 /* tests.c in Sources */ = {isa = PBXBuildFile; fileRef = F5947AC01E6DB97A00ABFBE7 /* tests.c */; };
+		F5E844471E6EF1920031F985 /* sturm.c in Sources */ = {isa = PBXBuildFile; fileRef = F5E844451E6EF1920031F985 /* sturm.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -32,6 +33,8 @@
 		F5947ABF1E6DB70D00ABFBE7 /* settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = settings.h; sourceTree = "<group>"; };
 		F5947AC01E6DB97A00ABFBE7 /* tests.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tests.c; sourceTree = "<group>"; };
 		F5947AC11E6DB97A00ABFBE7 /* tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tests.h; sourceTree = "<group>"; };
+		F5E844451E6EF1920031F985 /* sturm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sturm.c; sourceTree = "<group>"; };
+		F5E844461E6EF1920031F985 /* sturm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sturm.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +73,8 @@
 				F5947ABF1E6DB70D00ABFBE7 /* settings.h */,
 				F5947AC01E6DB97A00ABFBE7 /* tests.c */,
 				F5947AC11E6DB97A00ABFBE7 /* tests.h */,
+				F5E844451E6EF1920031F985 /* sturm.c */,
+				F5E844461E6EF1920031F985 /* sturm.h */,
 			);
 			path = Equation4_x86;
 			sourceTree = "<group>";
@@ -132,6 +137,7 @@
 			files = (
 				F5947AC21E6DB97A00ABFBE7 /* tests.c in Sources */,
 				F5947ABE1E6DB68900ABFBE7 /* direct.c in Sources */,
+				F5E844471E6EF1920031F985 /* sturm.c in Sources */,
 				F5947AB61E6DB64F00ABFBE7 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -253,6 +259,7 @@
 				F5947ABB1E6DB64F00ABFBE7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

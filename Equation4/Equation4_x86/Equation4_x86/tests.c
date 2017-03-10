@@ -11,7 +11,7 @@
 void cparts(rcomplex z, real *pr, real *pi)
 {
     *pr = crealr(z);
-    *pi = crealr(z);
+    *pi = cimagr(z);
 }
 
 int test_solve2(real a, real b, real c,
@@ -111,4 +111,22 @@ int testset_solve(int (*solve2)(real, real, real, rcomplex[2]),
     result &= testset_solve3(solve3);
     result &= testset_solve4(solve4);
     return result;
+}
+
+int test_solve4_real(real a, real b, real c, real d, real e,
+                     int (*solve4_real)(real, real, real, real, real, real *, uint*))
+{
+    real roots[4], z;
+    uint num_roots;
+    uint i;
+    if ((*solve4_real)(a, b, c, d, e, roots, &num_roots)) {
+        for (i = 0; i < num_roots; i++) {
+            z = roots[i];
+            if (isnan(z) ||
+                fabsr(a*z*z*z*z + b*z*z*z + c*z*z + d*z + e) >= EQ_PREC) {
+                return 0;
+            }
+        }
+    }
+    return 1;
 }

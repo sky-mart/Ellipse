@@ -13,7 +13,7 @@
 void cparts(complexr z, real *pr, real *pi)
 {
     *pr = crealr(z);
-    *pi = crealr(z);
+    *pi = cimagr(z);
 }
 
 void cprint(complexr z)
